@@ -1,0 +1,2 @@
+aiohttp~=3.8
+furl~=2.1
