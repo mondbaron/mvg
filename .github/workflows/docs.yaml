@@ -20,6 +20,7 @@ jobs:
       - uses: actions/setup-python@v2
       - name: install requirements
         run: |
+          pip install -r requirements.txt
           pip install -r requirements.dev.txt
       - name: build
         run: |
