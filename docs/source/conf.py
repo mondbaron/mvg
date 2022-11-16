@@ -23,7 +23,6 @@ release = '0.1.2'
 extensions = ['sphinx.ext.autodoc', 'sphinx_mdinclude', 'sphinx_rtd_theme']
 
 templates_path = ['_templates']
-exclude_patterns = []
 smartquotes = True
 
 # -- Options for HTML output -------------------------------------------------
