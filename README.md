@@ -1,22 +1,22 @@
 # mvgapi
 
-This package aims to provide a clean, performant and barrier-free interface to timetable information of the *Münchner Verkehrsgesellschaft* (MVG), responsible for public transport in Munich. It exports the class `MvgApi` to retrieve stations, lines, destinations and departures from the unofficial JSON API at https://www.mvg.de.
+This package aims to provide a clean, performant and barrier-free interface to timetable information of the *Münchner Verkehrsgesellschaft* (MVG), responsible for public transport in Munich. It exports the class `MvgApi` to retrieve stations, lines and departures from the unofficial JSON API at https://www.mvg.de.
 
 ## Disclaimer
 
-This project is **not an official project from the *Münchner Verkehrsgesellschaft* (MVG)**. It was developed as a private project from lack of a documented and openly accessible API. It simply reproduces the requests made by https://www.mvg.de to provide a barrier-free access to local timetable information.
+This project is **not an official project from the Münchner Verkehrsgesellschaft (MVG)**. It was developed as a private project from lack of a documented and openly accessible API. It simply reproduces the requests made by https://www.mvg.de to provide a barrier-free access to local timetable information.
 
-Therefore, the following **usage restrictions from the [MVG Imprint](https://www.mvg.de/impressum.html) do apply to all users of this package**:
+Therefore, the following **usage restrictions from the MVG Imprint do apply to all users of this package**:
 
 > Our systems are used for direct customer interaction. The processing of our content or data by third parties requires our express consent. For **private, non-commercial purposes, moderate use is tolerated** without our explicit consent. Any form of **data mining does not constitute moderate use**. We reserve the right to revoke this permission in principle or in individual cases. Please direct any questions to: redaktion@mvg.de
 > 
-> (*MVG Imprint, available at https://www.mvg.de/impressum.html, accessed on 15. Nov 2022*)
+> (from https://www.mvg.de/impressum.html, accessed on 15. Nov 2022)
 
 ## Why another MVG API package?
 
 The project was inspired by two existing packages:
-- The package [`PyMVGLive`](https://pypi.org/project/PyMVGLive) from 2017 does provide an interface to the former MVGLive API at `mvg-live.de`. As of 2022 the MVGLive website does not exist anymore and the package has been archived. Although the old API still works for some stations, it does not for others - mainly due to updated station identifiers. Therefore, the package is considered deprecated and cannot be used for new designs.
-- The newer package [`mvg-api`](https://pypi.org/project/mvg-api) offers an implementation from 2020 based on the API at `www.mvg.de/api/fahrinfo`. It considers the updated station identifiers and still works perfectly. This package provides the basis for recent projects such as [`mvg-cli`](https://pypi.org/project/mvg-cli).
+- The package [PyMVGLive](https://pypi.org/project/PyMVGLive) from 2017 does provide an interface to the former MVGLive API at `mvg-live.de`. As of 2022 the MVGLive website does not exist anymore and the package has been archived. Although the old API still works for some stations, it does not for others - mainly due to updated station identifiers. Therefore, the package is considered deprecated and cannot be used for new designs.
+- The newer package [mvg-api](https://pypi.org/project/mvg-api) offers an implementation from 2020 based on the API at `www.mvg.de/api/fahrinfo`. It considers the updated station identifiers and still works perfectly. This package provides the basis for recent projects such as [mvg-cli](https://pypi.org/project/mvg-cli).
 
 So why another MVG API package? In the end three reasons were decisive:
 - The recent website at uses a new API at `www.mvg.de/api/fib/v1`, which seems to be more performant than the previous one.
