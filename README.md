@@ -4,7 +4,7 @@ This package aims to provide a clean, performant and barrier-free interface to t
 
 ## Disclaimer
 
-This project is **not an official project from the *Münchner Verkehrsgesellschaft* (MVG)**. It was developed as private project from lack of a documented and openly accessible API. It simply reproduces the requests made by https://www.mvg.de to provide a barrier-free access to local timetable information.
+This project is **not an official project from the *Münchner Verkehrsgesellschaft* (MVG)**. It was developed as a private project from lack of a documented and openly accessible API. It simply reproduces the requests made by https://www.mvg.de to provide a barrier-free access to local timetable information.
 
 Therefore, the following **usage restrictions from the [MVG Imprint](https://www.mvg.de/impressum.html) do apply to all users of this package**:
 
@@ -30,7 +30,6 @@ Install from the Python Package Index (PyPI) using `pip`:
 pip install -i https://test.pypi.org/simple/ mvgapi
 ```
 
-
 ## Basic Usage
 
 The interface was designed to be simple and intuitive. Basic usage follows these steps:
@@ -51,13 +50,17 @@ if station:
     print(station, departures)
 ```
 
+### Available Stations and Lines
+
+The static methods `MvgApi.stations()` and `MvgApi.lines()` expose a list of all available stations and a list of all available lines from designated API endpoints. While these calls are great for reference, they are also quite extensive and should not be used within a frequent query loop.
+
 ### Filters
 
 The results from `.departures(limit, offset, transport_types)` can be filtered using the following arguments:
 
 - `limit` limits the output to the given number of departures, defaults to 10
 - `offset` adds an offset (e.g. walking distance to the station) in minutes, defaults to 0
-- `transport_types` filters the result by a list of transport types (e.g. `[UBAHN, SBAHN]`)
+- `transport_types` filters the result by a list of transport types (e.g. `[TransportType.UBAHN]`)
 
 A filtered example looks like this:
 
