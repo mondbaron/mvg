@@ -14,27 +14,35 @@ from typing import Any
 import aiohttp
 from furl import furl
 
-MVGAPI_URL = "https://www.mvg.de/api/fib/v1"
-MVGAPI_DEPARTURES_LIMIT = 50  # API defaults to 10, limits to 100
+MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
 
 
-class MvgApiEndpoint(Enum):
+class Base(Enum):
+    """MVG APIs base URLs"""
+    FIB = "https://www.mvg.de/api/fib/v1"
+    ZDM = "https://www.mvg.de/.rest/zdm"
+
+
+class Endpoint(Enum):
     """MVG API endpoints with URLs and arguments"""
-    LOCATION = ("/location", ["query"])
-    NEARBY = ("/nearby", ["latitude", "longitude"])
-    DEPARTURE = ("/departure", ["globalId", "limit", "offsetInMinutes"])
+    FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
+    FIB_NEARBY: tuple[str, list[str]] = ("/nearby", ["latitude", "longitude"])
+    FIB_DEPARTURE: tuple[str, list[str]] = ("/departure", ["globalId", "limit", "offsetInMinutes"])
+    ZDM_STATION_IDS: tuple[str, list[str]] = ("/mvgStationGlobalIds", [])
+    ZDM_STATIONS: tuple[str, list[str]] = ("/stations", [])
+    ZDM_LINES: tuple[str, list[str]] = ("/lines", [])
 
 
-class MvgApiTransportType(Enum):
+class TransportType(Enum):
     """MVG products defined by the API with name and icon."""
-    BAHN = ("Bahn", "mdi:train")
-    SBAHN = ("S-Bahn", "mdi:subway-variant")
-    UBAHN = ("U-Bahn", "mdi:subway")
-    TRAM = ("Tram", "mdi:tram")
-    BUS = ("Bus", "mdi:bus")
-    REGIONAL_BUS = ("Regionalbus", "mdi:bus")
-    SEV = ("SEV", "mdi:taxi")
-    SHIFF = ("Schiff", "mdi:ferry")
+    BAHN: tuple[str, str] = ("Bahn", "mdi:train")
+    SBAHN: tuple[str, str] = ("S-Bahn", "mdi:subway-variant")
+    UBAHN: tuple[str, str] = ("U-Bahn", "mdi:subway")
+    TRAM: tuple[str, str] = ("Tram", "mdi:tram")
+    BUS: tuple[str, str] = ("Bus", "mdi:bus")
+    REGIONAL_BUS: tuple[str, str] = ("Regionalbus", "mdi:bus")
+    SEV: tuple[str, str] = ("SEV", "mdi:taxi")
+    SHIFF: tuple[str, str] = ("Schiff", "mdi:ferry")
 
 
 class MvgApiError(Exception):
@@ -75,11 +83,6 @@ class MvgApi:
     def __init__(self,
                  station: str
                  ) -> None:
-        self.loop = asyncio.get_event_loop()
-        result = self.loop.run_until_complete(self.station_async(station))
-        if result is None:
-            raise ValueError("Invalid station.")
-        self.station_id = result["id"]
         """
         Create an instance of the MvgApi by station name and place or global station id.
 
@@ -87,28 +90,55 @@ class MvgApi:
         :raises MvgApiError: raised on communication failure or unexpected result
         :raises ValueError: raised on bad station id format
         """
+        station = station.strip()
+        if not self.valid_station_id(station, True):
+            raise ValueError("Invalid station.")
+
+        self.loop = asyncio.get_event_loop()
+        station_details = self.station(station)
+        if station_details:
+            self.station_id = station_details["id"]
 
     @staticmethod
-    def is_global_station_id(station_id: str) -> bool:
+    def valid_station_id(station_id: str, validate_existance: bool = False) -> bool:
         """
         Check if the station id is a global station ID according to VDV Recommendation 432.
 
         :param station_id: a global station id (e.g. 'de:09162:70')
+        :param validate_existance: validate the existance in a list from the API
         :return: True if valid, False if Invalid
         """
-        return bool(re.match("de:[0-9]{2,5}:[0-9]+", station_id))
+        valid_format = bool(re.match("de:[0-9]{2,5}:[0-9]+", station_id))
+        if not valid_format:
+            return False
+
+        if validate_existance:
+            try:
+                loop = asyncio.get_event_loop()
+                result = loop.run_until_complete(MvgApi.api(Base.ZDM, Endpoint.ZDM_STATION_IDS))
+                assert isinstance(result, list)
+                return station_id in result
+            except (AssertionError, KeyError) as exc:
+                raise MvgApiError("Bad API call: Could not parse station data") from exc
+
+        return True
 
     @staticmethod
-    async def api(endpoint: MvgApiEndpoint, args: dict[str, Any] | None = None) -> Any:
+    async def api(
+        base: Base,
+        endpoint: Endpoint,
+        args: dict[str, Any] | None = None
+    ) -> Any:
         """
         Call the API endpoint with the given arguments.
 
-        :param endpoint: the endpoint (LOCATION, NEARBY, DEPARTURE)
-        :param args: a dictionary containing arguments (query, latitude, longitude, id, footway)
+        :param base: the API base
+        :param endpoint: the endpoint
+        :param args: a dictionary containing arguments
         :return: the response as JSON object
         :raises MvgApiError: raised on communication failure or unexpected result
         """
-        url = furl(MVGAPI_URL)
+        url = furl(base.value)
         url /= endpoint.value[0]
         url.set(query_params=args)
 
@@ -127,6 +157,73 @@ class MvgApi:
             raise MvgApiError(f"Bad API call: Got {str(type(exc))} from {url.url}") from exc
 
     @staticmethod
+    async def station_ids_async() -> list[str]:
+        """
+        Retrieve a list of all valid station ids.
+
+        :return: station ids as a list
+        :raises MvgApiError: raised on communication failure or unexpected result
+        """
+        try:
+            result = await MvgApi.api(Base.ZDM, Endpoint.ZDM_STATION_IDS)
+            assert isinstance(result, list)
+            return sorted(result)
+        except (AssertionError, KeyError) as exc:
+            raise MvgApiError("Bad API call: Could not parse station data") from exc
+
+    @staticmethod
+    async def stations_async() -> list[dict[str, Any]]:
+        """
+        Retrieve a list of all stations.
+
+        :return: a list of stations as dictionary
+        :raises MvgApiError: raised on communication failure or unexpected result
+        """
+        try:
+            result = await MvgApi.api(Base.ZDM, Endpoint.ZDM_STATIONS)
+            assert isinstance(result, list)
+            return result
+        except (AssertionError, KeyError) as exc:
+            raise MvgApiError("Bad API call: Could not parse station data") from exc
+
+    @staticmethod
+    def stations() -> list[dict[str, Any]]:
+        """
+        Retrieve a list of all stations.
+
+        :return: a list of stations as dictionary
+        :raises MvgApiError: raised on communication failure or unexpected result
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(MvgApi.stations_async())
+
+    @staticmethod
+    async def lines_async() -> list[dict[str, Any]]:
+        """
+        Retrieve a list of all lines.
+
+        :return: a list of lines as dictionary
+        :raises MvgApiError: raised on communication failure or unexpected result
+        """
+        try:
+            result = await MvgApi.api(Base.ZDM, Endpoint.ZDM_LINES)
+            assert isinstance(result, list)
+            return result
+        except (AssertionError, KeyError) as exc:
+            raise MvgApiError("Bad API call: Could not parse station data") from exc
+
+    @staticmethod
+    def lines() -> list[dict[str, Any]]:
+        """
+        Retrieve a list of all lines.
+
+        :return: a list of lines as dictionary
+        :raises MvgApiError: raised on communication failure or unexpected result
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(MvgApi.stations_async())
+
+    @staticmethod
     async def station_async(query: str) -> dict[str, str] | None:
         """
         Find a station by station name and place or global station id.
@@ -139,10 +236,11 @@ class MvgApi:
 
             { "id": "de:09162:70", "name": "Hauptbahnhof", "place": "München" }
         """
+        query = query.strip()
         try:
-            args = dict.fromkeys(MvgApiEndpoint.LOCATION.value[1])
+            args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
             args.update({"query": query.strip()})
-            result = await MvgApi.api(MvgApiEndpoint.LOCATION, args)
+            result = await MvgApi.api(Base.FIB, Endpoint.FIB_LOCATION, args)
             assert isinstance(result, list)
 
             # return None if result is empty
@@ -150,7 +248,7 @@ class MvgApi:
                 return None
 
             # return name and place from first result if station id was provided
-            if MvgApi.is_global_station_id(query):
+            if MvgApi.valid_station_id(query):
                 station = {
                     "id": query.strip(),
                     "name": result[0]["name"],
@@ -205,9 +303,9 @@ class MvgApi:
             { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
         """
         try:
-            args = dict.fromkeys(MvgApiEndpoint.LOCATION.value[1])
+            args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
             args.update({"latitude": latitude, "longitude": longitude})
-            result = await MvgApi.api(MvgApiEndpoint.NEARBY, args)
+            result = await MvgApi.api(Base.FIB, Endpoint.FIB_NEARBY, args)
             assert isinstance(result, list)
 
             # return first location of type "STATION"
@@ -246,10 +344,9 @@ class MvgApi:
     @staticmethod
     async def departures_async(
         station_id: str,
-        limit: int = 10,
+        limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
-        lines: list[str] | None = None,
-        destinations: list[str] | None = None,
+        transport_types: list[TransportType] | None = None
     ) -> list[dict[str, Any]]:
         """
         Retreive the next departures for a station by station id.
@@ -257,8 +354,7 @@ class MvgApi:
         :param station_id: the global station id ('de:09162:70')
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
-        :param lines: filter by a list of lines, defaults to None
-        :param destinations: filter by a list if destinations, defaults to None
+        :param transport_types: filter by transport type, defaults to None
         :return: a list of departures as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
         :raises ValueError: raised on bad station id format
@@ -276,36 +372,35 @@ class MvgApi:
                 'messages': []
             }, ... ]
         """
-        if not MvgApi.is_global_station_id(station_id):
+        station_id.strip()
+        if not MvgApi.valid_station_id(station_id):
             raise ValueError("Invalid format of global staton id.")
 
         try:
-            args = dict.fromkeys(MvgApiEndpoint.LOCATION.value[1])
+            args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
             args.update({"globalId": station_id,
                          "offsetInMinutes": offset,
-                         "limit": MVGAPI_DEPARTURES_LIMIT})
-            result = await MvgApi.api(MvgApiEndpoint.DEPARTURE, args)
+                         "limit": limit})
+            if transport_types:
+                args.update({
+                    "transportTypes": ",".join([product.name for product in transport_types])})
+            result = await MvgApi.api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
             assert isinstance(result, list)
 
             departures: list[dict[str, Any]] = []
             for departure in result:
-                if all([
-                    lines is None or (departure["label"] in lines),
-                    destinations is None or (departure["destination"] in destinations),
-                    limit == 0 or len(departures) < limit,
-                ]):
-                    departures.append(
-                        {
-                            "time": int(departure["realtimeDepartureTime"] / 1000),
-                            "planned": int(departure["plannedDepartureTime"] / 1000),
-                            "line": departure["label"],
-                            "destination": departure["destination"],
-                            "type": MvgApiTransportType[departure["transportType"]].value[0],
-                            "icon": MvgApiTransportType[departure["transportType"]].value[1],
-                            "cancelled": departure["cancelled"],
-                            "messages": departure["messages"],
-                        }
-                    )
+                departures.append(
+                    {
+                        "time": int(departure["realtimeDepartureTime"] / 1000),
+                        "planned": int(departure["plannedDepartureTime"] / 1000),
+                        "line": departure["label"],
+                        "destination": departure["destination"],
+                        "type": TransportType[departure["transportType"]].value[0],
+                        "icon": TransportType[departure["transportType"]].value[1],
+                        "cancelled": departure["cancelled"],
+                        "messages": departure["messages"],
+                    }
+                )
             return departures
 
         except (AssertionError, KeyError) as exc:
@@ -313,18 +408,16 @@ class MvgApi:
 
     def departures(
         self,
-        limit: int = 10,
+        limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
-        lines: list[str] | None = None,
-        destinations: list[str] | None = None,
+        transport_types: list[TransportType] | None = None,
     ) -> list[dict[str, Any]]:
         """
         Retreive the next departures.
 
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
-        :param lines: filter by a list of lines, defaults to None
-        :param destinations: filter by a list if destinations, defaults to None
+        :param transport_types: filter by transport type, defaults to None
         :return: a list of departures as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
 
@@ -342,94 +435,4 @@ class MvgApi:
             }, ... ]
         """
         return self.loop.run_until_complete(
-            self.departures_async(self.station_id, limit, offset, lines, destinations))
-
-    @staticmethod
-    async def lines_async(station_id: str) -> list[str]:
-        """
-        Retrieve the serving lines for a station by station id.
-
-        :param station_id: the global station id ('de:09162:70')
-        :return: line names as list
-        :raises MvgApiError: raised on communication failure or unexpected result
-        :raises ValueError: raised on bad station id format
-
-        Example result:
-
-            [ '153', '154', '58', '68', 'U3', 'U6' ]
-        """
-        if not MvgApi.is_global_station_id(station_id):
-            raise ValueError("Invalid format of global staton id.")
-
-        try:
-            args = dict.fromkeys(MvgApiEndpoint.LOCATION.value[1])
-            args.update({"globalId": station_id, "limit": MVGAPI_DEPARTURES_LIMIT})
-            result = await MvgApi.api(MvgApiEndpoint.DEPARTURE, args)
-            assert isinstance(result, list)
-
-            lines: list[str] = []
-            for departure in result:
-                lines.append(departure["label"])
-            return sorted(set(lines))
-
-        except (AssertionError, KeyError) as exc:
-            raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
-
-    def lines(self) -> list[str]:
-        """
-        Retrieve the serving lines.
-
-        :return: line names as list
-        :raises MvgApiError: raised on communication failure or unexpected result
-        :raises ValueError: raised on bad station id format
-
-        Example result:
-
-            [ '153', '154', '58', '68', 'U3', 'U6' ]
-        """
-        return self.loop.run_until_complete(self.lines_async(self.station_id))
-
-    @staticmethod
-    async def destinations_async(station_id: str) -> list[str]:
-        """
-        Retrieve the final destinations for a station by given station id.
-
-        :param station_id: the unique station id ('de:09162:70')
-        :return: final destinations as list
-        :raises MvgApiError: raised on communication failure or unexpected result
-        :raises ValueError: raised on bad station id format
-
-        Example result:
-
-            ['Fröttmaning', 'Fürstenried West', 'Garching, Forschungszentrum', ...]
-        """
-        if not MvgApi.is_global_station_id(station_id):
-            raise ValueError("Invalid format of global staton id.")
-
-        try:
-            args = dict.fromkeys(MvgApiEndpoint.LOCATION.value[1])
-            args.update({"globalId": station_id, "limit": MVGAPI_DEPARTURES_LIMIT})
-            result = await MvgApi.api(MvgApiEndpoint.DEPARTURE, args)
-            assert isinstance(result, list)
-
-            destinations: list[str] = []
-            for departure in result:
-                destinations.append(departure["destination"])
-            return sorted(set(destinations))
-
-        except (AssertionError, KeyError) as exc:
-            raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
-
-    def destinations(self) -> list[str]:
-        """
-        Retrieve the final destinations.
-
-        :return: final destinations as list
-        :raises MvgApiError: raised on communication failure or unexpected result
-        :raises ValueError: raised on bad station id format
-
-        Example result:
-
-            ['Fröttmaning', 'Fürstenried West', 'Garching, Forschungszentrum', ...]
-        """
-        return self.loop.run_until_complete(self.destinations_async(self.station_id))
+            self.departures_async(self.station_id, limit, offset, transport_types))

@@ -23,13 +23,21 @@ So why another MVG API package? In the end three reasons were decisive:
 - None of the existing packages offer asynchronous calls for concurrent code projects.
 - An optimized package was required to develop a [Home Assistant](https://www.home-assistant.io) integration.
 
+## Installation
+
+Install from the Python Package Index (PyPI) using `pip`:
+```
+pip install -i https://test.pypi.org/simple/ mvgapi
+```
+
+
 ## Basic Usage
 
 The interface was designed to be simple and intuitive. Basic usage follows these steps:
 - Find a station using `MvgApi.station(station)` by its name and place (e.g. `"Universität, München"`) or its global station identifier (e.g. `"de:09162:70"`).
 - Alternatively, `MvgApi.nearby(latitude, longitude)` finds the nearest station.
 - Create an API instance using `MvgApi(station)` by station name and place or its global identifier.
-- Use the methods `.lines()`, `.destinations()` and `.departures()` to retrieve information from the API.
+- Use the method `.departures()` to retrieve information from the API.
 
 A basic example looks like this:
 
@@ -39,38 +47,42 @@ from mvgapi import MvgApi
 station = MvgApi.station('Universität, München')
 if station:
     mvgapi = MvgApi(station['id'])
-    lines = mvgapi.lines()
-    destinations = mvgapi.destinations()
     departures = mvgapi.departures()
-    print(station, lines, destinations, departures)
+    print(station, departures)
 ```
 
 ### Filters
 
-The results from `.departures(limit, offset, lines, destination)` can be filtered using the following arguments:
+The results from `.departures(limit, offset, transport_types)` can be filtered using the following arguments:
 
 - `limit` limits the output to the given number of departures, defaults to 10
 - `offset` adds an offset (e.g. walking distance to the station) in minutes, defaults to 0
-- `lines` filters the result by a list of lines (e.g. `["U3", "U6"]`)
-- `destinations` filters the result by a list of final destinations (e.g. `["Münchner Freiheit", "Olympiazentrum"]`)
+- `transport_types` filters the result by a list of transport types (e.g. `[UBAHN, SBAHN]`)
+
+A filtered example looks like this:
+
+```python
+from mvgapi import MvgApi, TransportType
+
+station = MvgApi.station('Universität, München')
+if station:
+    mvgapi = MvgApi(station['id'])
+    departures = mvgapi.departures(
+        limit=3,
+        offset=5,
+        transport_types=[TransportType.UBAHN])
+    print(station, departures)
+```
 
 ### Example results
 
-`station()` results a `dict`:
+`station()` or `nearby()` results a `dict`:
 ```
 { 
 'id': 'de:09162:70', 
 'name': 'Universität', 
 'place': 'München'
 }
-```
-`lines()` results a `list`:
-```
-[ '153', '154', '58', '68', 'U3', 'U6' ]
-```
-`destinations()` results a `list`:
-```
-[ 'Fröttmaning', 'Fürstenried West', 'Garching, Forschungszentrum', ... ]
 ```
 `departures()` results a `list` of `dict`:
 ```
@@ -93,15 +105,14 @@ The class `MvgApi` internally calls asynchronous methods using `asyncio` and `ai
 The basic example but with asynchronous calls looks like this:
 
 ```python
+import asyncio
 from mvgapi import MvgApi
 
-async def demo():
+async def demo() -> None:
     station = await MvgApi.station_async('Universität, München')
     if station:
-        lines = await MvgApi.lines_async(station['id'])
-        destinations = await MvgApi.destinations_async(station['id'])
-        departures = await MvgApi.departures_async(station['id'])
-        print(station, lines, destinations, departures)
+        departures = MvgApi.departures_async(station['id'])
+        print(station, await departures)
 loop = asyncio.get_event_loop()
 loop.run_until_complete(demo())
 ```
