@@ -17,14 +17,14 @@ MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
 
 class Base(Enum):
     """MVG APIs base URLs"""
-    FIB = "https://www.mvg.de/api/fib/v1"
+    FIB = "https://www.mvg.de/api/fib/v2"
     ZDM = "https://www.mvg.de/.rest/zdm"
 
 
 class Endpoint(Enum):
     """MVG API endpoints with URLs and arguments"""
     FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
-    FIB_NEARBY: tuple[str, list[str]] = ("/nearby", ["latitude", "longitude"])
+    FIB_NEARBY: tuple[str, list[str]] = ("/station/nearby", ["latitude", "longitude"])
     FIB_DEPARTURE: tuple[str, list[str]] = ("/departure", ["globalId", "limit", "offsetInMinutes"])
     ZDM_STATION_IDS: tuple[str, list[str]] = ("/mvgStationGlobalIds", [])
     ZDM_STATIONS: tuple[str, list[str]] = ("/stations", [])
@@ -111,7 +111,7 @@ class MvgApi:
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url.url) as resp:
+                async with session.get(url.url, ) as resp:
                     if resp.status != 200:
                         raise MvgApiError(
                             f"Bad API call: Got response ({resp.status}) from {url.url}")
@@ -123,7 +123,7 @@ class MvgApi:
         except aiohttp.ClientError as exc:
             raise MvgApiError(f"Bad API call: Got {str(type(exc))} from {url.url}") from exc
 
-    @staticmethod
+    @ staticmethod
     async def station_ids_async() -> list[str]:
         """
         Retrieve a list of all valid station ids.
@@ -138,7 +138,7 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @staticmethod
+    @ staticmethod
     async def stations_async() -> list[dict[str, Any]]:
         """
         Retrieve a list of all stations.
@@ -153,7 +153,7 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @staticmethod
+    @ staticmethod
     def stations() -> list[dict[str, Any]]:
         """
         Retrieve a list of all stations.
@@ -164,7 +164,7 @@ class MvgApi:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(MvgApi.stations_async())
 
-    @staticmethod
+    @ staticmethod
     async def lines_async() -> list[dict[str, Any]]:
         """
         Retrieve a list of all lines.
@@ -179,7 +179,7 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @staticmethod
+    @ staticmethod
     def lines() -> list[dict[str, Any]]:
         """
         Retrieve a list of all lines.
@@ -190,7 +190,7 @@ class MvgApi:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(MvgApi.stations_async())
 
-    @staticmethod
+    @ staticmethod
     async def station_async(query: str) -> dict[str, str] | None:
         """
         Find a station by station name and place or global station id.
@@ -270,20 +270,19 @@ class MvgApi:
             { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
         """
         try:
-            args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
+            args = dict.fromkeys(Endpoint.FIB_NEARBY.value[1])
             args.update({"latitude": latitude, "longitude": longitude})
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_NEARBY, args)
             assert isinstance(result, list)
 
             # return first location of type "STATION"
             for location in result:
-                if location["type"] == "STATION":
-                    station = {
-                        "id": location["globalId"],
-                        "name": location["name"],
-                        "place": location["place"],
-                    }
-                    return station
+                station = {
+                    "id": location["globalId"],
+                    "name": location["name"],
+                    "place": location["place"],
+                }
+                return station
 
             # return None if no station was found
             return None

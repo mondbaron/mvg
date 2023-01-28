@@ -13,9 +13,9 @@ sys.path.append(os.path.abspath('./src'))
 sys.path.append(os.path.abspath('../../src'))
 
 project = 'mvgapi'
-copyright = '2022, Martin Dziura'
+copyright = '2023, Martin Dziura'
 author = 'Martin Dziura'
-release = '0.1.2'
+release = '0.1.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -19,7 +19,7 @@ The project was inspired by two existing packages:
 - The newer package [mvg-api](https://pypi.org/project/mvg-api) offers an implementation from 2020 based on the API at `www.mvg.de/api/fahrinfo`. It considers the updated station identifiers and still works perfectly. This package provides the basis for recent projects such as [mvg-cli](https://pypi.org/project/mvg-cli).
 
 So why another MVG API package? In the end three reasons were decisive:
-- The recent website at uses a new API at `www.mvg.de/api/fib/v1`, which seems to be more performant than the previous one.
+- The recent website at uses a new API at `www.mvg.de/api/fib/v2`, which seems to be more performant than the previous one.
 - None of the existing packages offer asynchronous calls for concurrent code projects.
 - An optimized package was required to develop a [Home Assistant](https://www.home-assistant.io) integration.
 

@@ -10,7 +10,13 @@ def demo_basic() -> None:
     if station:
         mvgapi = MvgApi(station['id'])
         departures = mvgapi.departures()
-        print(station, departures)
+        print("# BASIC:\n", station, departures)
+
+
+def demo_nearby() -> None:
+    """Station by Coordinates"""
+    station = MvgApi.nearby(48.1, 11.5)
+    print("# NEARBY:\n", station)
 
 
 def demo_filter() -> None:
@@ -22,7 +28,7 @@ def demo_filter() -> None:
             limit=3,
             offset=5,
             transport_types=[TransportType.UBAHN])
-        print(station, departures)
+        print("# FILTER:\n", station, departures)
 
 
 async def demo_async() -> None:
@@ -30,11 +36,12 @@ async def demo_async() -> None:
     station = await MvgApi.station_async('Universität, München')
     if station:
         departures = MvgApi.departures_async(station['id'])
-        print(station, await departures)
+        print("# ASYNC:\n", station, await departures)
 
 if __name__ == "__main__":
 
     demo_basic()
+    demo_nearby()
     demo_filter()
 
     loop = asyncio.get_event_loop()
