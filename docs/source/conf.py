@@ -6,22 +6,26 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import sys
 import os
+import sys
+import datetime
+
+from sphinx_pyproject import SphinxConfig
 
 sys.path.append(os.path.abspath('./src'))
 sys.path.append(os.path.abspath('../../src'))
 
-project = 'mvgapi'
-copyright = '2023, Martin Dziura'
-author = 'Martin Dziura'
-release = '0.1.3'
+config = SphinxConfig("../../pyproject.toml")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+project = config.name
+author = config.author
+version = config.version
+project_copyright = f"{datetime.date.today().year}, {config.author}"
 
-extensions = ['sphinx.ext.autodoc', 'sphinx_mdinclude', 'sphinx_rtd_theme']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx_mdinclude', 'sphinx_rtd_theme']
 
 templates_path = ['_templates']
 smartquotes = True

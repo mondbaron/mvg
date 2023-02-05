@@ -1,0 +1,21 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
+{
+    "name": "Miniconda (Python 3)",
+    "image": "mcr.microsoft.com/devcontainers/miniconda",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "configureZshAsDefaultShell": true,
+            "installOhMyZsh": true,
+            "upgradePackages": true,
+            "username": "automatic",
+            "userUid": "automatic",
+            "userGid": "automatic"
+        },
+        "ghcr.io/devcontainers-contrib/features/tox:2": {
+            "version": "latest"
+        }
+    },
+    "postAttachCommand": "pip install --upgrade -e .[dev]"
+}

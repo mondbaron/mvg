@@ -65,7 +65,6 @@ class MvgApi:
         if not self.valid_station_id(station, True):
             raise ValueError("Invalid station.")
 
-        self.loop = asyncio.get_event_loop()
         station_details = self.station(station)
         if station_details:
             self.station_id = station_details["id"]
@@ -77,7 +76,7 @@ class MvgApi:
 
         :param station_id: a global station id (e.g. 'de:09162:70')
         :param validate_existance: validate the existance in a list from the API
-        :returns: True if valid, False if Invalid
+        :return: True if valid, False if Invalid
         """
         valid_format = bool(re.match("de:[0-9]{2,5}:[0-9]+", station_id))
         if not valid_format:
@@ -85,8 +84,7 @@ class MvgApi:
 
         if validate_existance:
             try:
-                loop = asyncio.get_event_loop()
-                result = loop.run_until_complete(MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS))
+                result = asyncio.run(MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS))
                 assert isinstance(result, list)
                 return station_id in result
             except (AssertionError, KeyError) as exc:
@@ -102,8 +100,8 @@ class MvgApi:
         :param base: the API base
         :param endpoint: the endpoint
         :param args: a dictionary containing arguments
-        :returns: the response as JSON object
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the response as JSON object
         """
         url = furl(base.value)
         url /= endpoint.value[0]
@@ -123,13 +121,13 @@ class MvgApi:
         except aiohttp.ClientError as exc:
             raise MvgApiError(f"Bad API call: Got {str(type(exc))} from {url.url}") from exc
 
-    @ staticmethod
+    @staticmethod
     async def station_ids_async() -> list[str]:
         """
         Retrieve a list of all valid station ids.
 
-        :returns: station ids as a list
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: station ids as a list
         """
         try:
             result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS)
@@ -138,13 +136,13 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @ staticmethod
+    @staticmethod
     async def stations_async() -> list[dict[str, Any]]:
         """
         Retrieve a list of all stations.
 
-        :returns: a list of stations as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: a list of stations as dictionary
         """
         try:
             result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATIONS)
@@ -153,24 +151,23 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @ staticmethod
+    @staticmethod
     def stations() -> list[dict[str, Any]]:
         """
         Retrieve a list of all stations.
 
-        :returns: a list of stations as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: a list of stations as dictionary
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(MvgApi.stations_async())
+        return asyncio.run(MvgApi.stations_async())
 
-    @ staticmethod
+    @staticmethod
     async def lines_async() -> list[dict[str, Any]]:
         """
         Retrieve a list of all lines.
 
-        :returns: a list of lines as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: a list of lines as dictionary
         """
         try:
             result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_LINES)
@@ -179,27 +176,26 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
-    @ staticmethod
+    @staticmethod
     def lines() -> list[dict[str, Any]]:
         """
         Retrieve a list of all lines.
 
-        :returns: a list of lines as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: a list of lines as dictionary
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(MvgApi.stations_async())
+        return asyncio.run(MvgApi.stations_async())
 
-    @ staticmethod
+    @staticmethod
     async def station_async(query: str) -> dict[str, str] | None:
         """
         Find a station by station name and place or global station id.
 
         :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
-        :returns: the fist matching station as dictionary with keys 'id', 'name', 'place'
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
 
-        Example result:
+        Example result::
 
             { "id": "de:09162:70", "name": "Hauptbahnhof", "place": "München" }
         """
@@ -245,15 +241,14 @@ class MvgApi:
         Find a station by station name and place or global station id.
 
         :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
-        :returns: the fist matching station as dictionary with keys 'id', 'name', 'place'
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
 
-        Example result:
+        Example result::
 
             { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(MvgApi.station_async(query))
+        return asyncio.run(MvgApi.station_async(query))
 
     @staticmethod
     async def nearby_async(latitude: float, longitude: float) -> dict[str, str] | None:
@@ -262,10 +257,10 @@ class MvgApi:
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
-        :returns: the fist matching station as dictionary with keys 'id', 'name', 'place'
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
 
-        Example result:
+        Example result::
 
             { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
         """
@@ -297,15 +292,14 @@ class MvgApi:
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
-        :returns: the fist matching station as dictionary with keys 'id', 'name', 'place'
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
 
-        Example result:
+        Example result::
 
             { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(MvgApi.nearby_async(latitude, longitude))
+        return asyncio.run(MvgApi.nearby_async(latitude, longitude))
 
     @staticmethod
     async def departures_async(station_id: str,
@@ -319,11 +313,11 @@ class MvgApi:
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
         :param transport_types: filter by transport type, defaults to None
-        :returns: a list of departures as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
         :raises ValueError: raised on bad station id format
+        :return: a list of departures as dictionary
 
-        Example result:
+        Example result::
 
             [{
                 'time': 1668524580,
@@ -370,22 +364,21 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
 
-    def departures(
-            self,
-            limit: int = MVGAPI_DEFAULT_LIMIT,
-            offset: int = 0,
-            transport_types: list[TransportType] | None = None) -> list[dict[str, Any]]:
+    def departures(self,
+                   limit: int = MVGAPI_DEFAULT_LIMIT,
+                   offset: int = 0,
+                   transport_types: list[TransportType] | None = None) -> list[dict[str, Any]]:
         """
         Retreive the next departures.
 
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
         :param transport_types: filter by transport type, defaults to None
-        :returns: a list of departures as dictionary
         :raises MvgApiError: raised on communication failure or unexpected result
+        :return: a list of departures as dictionary
 
-        Example result:
-
+        Example result::
+            
             [{
                 'time': 1668524580,
                 'planned': 1668524460,
@@ -396,6 +389,6 @@ class MvgApi:
                 'cancelled': False,
                 'messages': []
             }, ... ]
+            
         """
-        return self.loop.run_until_complete(
-            self.departures_async(self.station_id, limit, offset, transport_types))
+        return asyncio.run(self.departures_async(self.station_id, limit, offset, transport_types))

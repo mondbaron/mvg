@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "njpwerner.autodocstring",
+        "aaron-bond.better-comments",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+    ]
+}

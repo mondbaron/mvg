@@ -2,11 +2,11 @@
     "python.linting.enabled": true,
     "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
-        "--max-line-length=100",
+        "--max-line-length=120",
     ],
     "python.linting.flake8Enabled": true,
     "python.linting.flake8Args": [
-        "--max-line-length=100"
+        "--max-line-length=120"
     ],
     "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [
@@ -19,8 +19,18 @@
     ],
     "python.formatting.provider": "autopep8",
     "python.formatting.autopep8Args": [
-        "--max-line-length=100",
+        "--max-line-length=120",
         "--aggressive",
         "--aggressive"
     ],
+    "evenBetterToml.formatter.arrayAutoExpand": true,
+    "evenBetterToml.formatter.alignEntries": true,
+    "evenBetterToml.formatter.compactEntries": false,
+    "evenBetterToml.formatter.reorderArrays": true,
+    "evenBetterToml.formatter.compactArrays": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }

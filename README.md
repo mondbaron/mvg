@@ -10,7 +10,7 @@ Therefore, the following **usage restrictions from the MVG Imprint do apply to a
 
 > Our systems are used for direct customer interaction. The processing of our content or data by third parties requires our express consent. For **private, non-commercial purposes, moderate use is tolerated** without our explicit consent. Any form of **data mining does not constitute moderate use**. We reserve the right to revoke this permission in principle or in individual cases. Please direct any questions to: redaktion@mvg.de
 > 
-> (from https://www.mvg.de/impressum.html, accessed on 15. Nov 2022)
+> (from https://www.mvg.de/impressum.html, accessed on 04. Feb 2023)
 
 ## Why another MVG API package?
 

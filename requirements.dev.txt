@@ -1,9 +1,0 @@
-pylint
-flake8
-autopep8
-mypy
-build
-twine
-sphinx
-sphinx-rtd-theme
-sphinx-mdinclude

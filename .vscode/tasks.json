@@ -1,0 +1,32 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build package (build)",
+            "group": "build",
+            "type": "shell",
+            "command": "python -m build"
+        },
+        {
+            "label": "Build documentation (sphinx-build)",
+            "group": "build",
+            "type": "shell",
+            "command": "sphinx-build",
+            "args": [
+                "docs/source/",
+                "docs/build"
+            ],
+        },
+        {
+            "label": "Deploy package (testpypi)",
+            "group": "build",
+            "type": "shell",
+            "command": "twine upload -r testpypi",
+            "args": [
+                "dist/*",
+            ],
+        }
+    ]
+}
