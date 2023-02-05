@@ -23,10 +23,13 @@
             "label": "Deploy package (testpypi)",
             "group": "build",
             "type": "shell",
-            "command": "twine upload -r testpypi",
-            "args": [
-                "dist/*",
-            ],
+            "command": "twine upload --config-file .pypirc -r testpypi dist/*",
+        },
+        {
+            "label": "Deploy package (pypi)",
+            "group": "build",
+            "type": "shell",
+            "command": "twine upload --config-file .pypirc dist/*",
         }
     ]
 }

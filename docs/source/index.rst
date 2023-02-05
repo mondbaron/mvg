@@ -4,6 +4,6 @@
 Module Reference
 ================
 
-.. automodule:: mvgapi
+.. automodule:: mvg
    :members:
    :undoc-members:

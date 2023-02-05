@@ -3,7 +3,7 @@ requires      = [ "setuptools>=61.0", "wheel" ]
 build-backend = "setuptools.build_meta"
 
 [project]
-name    = "mvgapi"
+name    = "mvg"
 version = "0.2.0"
 
 description = "An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG)."

@@ -1,4 +1,4 @@
-# mvgapi
+# mvg
 
 This package aims to provide a clean, performant and barrier-free interface to timetable information of the *Münchner Verkehrsgesellschaft* (MVG), responsible for public transport in Munich. It exports the class `MvgApi` to retrieve stations, lines and departures from the unofficial JSON API at https://www.mvg.de.
 
@@ -12,7 +12,7 @@ Therefore, the following **usage restrictions from the MVG Imprint do apply to a
 > 
 > (from https://www.mvg.de/impressum.html, accessed on 04. Feb 2023)
 
-## Why another MVG API package?
+## Why another MVG package?
 
 The project was inspired by two existing packages:
 - The package [PyMVGLive](https://pypi.org/project/PyMVGLive) from 2017 does provide an interface to the former MVGLive API at `mvg-live.de`. As of 2022 the MVGLive website does not exist anymore and the package has been archived. Although the old API still works for some stations, it does not for others - mainly due to updated station identifiers. Therefore, the package is considered deprecated and cannot be used for new designs.
@@ -27,7 +27,7 @@ So why another MVG API package? In the end three reasons were decisive:
 
 Install from the Python Package Index (PyPI) using `pip`:
 ```
-pip install -i https://test.pypi.org/simple/ mvgapi
+pip install mvg
 ```
 
 ## Basic Usage
@@ -41,7 +41,7 @@ The interface was designed to be simple and intuitive. Basic usage follows these
 A basic example looks like this:
 
 ```python
-from mvgapi import MvgApi
+from mvg import MvgApi
 
 station = MvgApi.station('Universität, München')
 if station:
@@ -65,7 +65,7 @@ The results from `.departures(limit, offset, transport_types)` can be filtered u
 A filtered example looks like this:
 
 ```python
-from mvgapi import MvgApi, TransportType
+from mvg import MvgApi, TransportType
 
 station = MvgApi.station('Universität, München')
 if station:
@@ -109,7 +109,7 @@ The basic example but with asynchronous calls looks like this:
 
 ```python
 import asyncio
-from mvgapi import MvgApi
+from mvg import MvgApi
 
 async def demo() -> None:
     station = await MvgApi.station_async('Universität, München')

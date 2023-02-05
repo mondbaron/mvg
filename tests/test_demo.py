@@ -2,7 +2,7 @@
 
 import pytest
 
-from mvgapi import MvgApi, TransportType
+from mvg import MvgApi, TransportType
 
 
 def test_basic() -> None:
