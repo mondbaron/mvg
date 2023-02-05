@@ -23,8 +23,9 @@ name  = "Martin Dziura"
 email = "m.dziura@tum.de"
 
 [project.urls]
-"Homepage"    = "https://github.com/mondbaron/mvgapi"
-"Bug Tracker" = "https://github.com/mondbaron/mvgapi/issues"
+"Documentation" = "https://mondbaron.github.io/mvg"
+"Source"        = "https://github.com/mondbaron/mvg"
+"Bug Tracker"   = "https://github.com/mondbaron/mvg/issues"
 
 [project.optional-dependencies]
 dev = [
