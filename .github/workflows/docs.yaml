@@ -18,14 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - name: install requirements
+      - name: install
         run: |
-          pip install -r requirements.txt
-          pip install -r requirements.dev.txt
-      - name: build
+          pip install -e .[dev]
+      - name: build documentation
         run: |
           sphinx-build docs/source docs/build
-      - name: deploy
+      - name: deploy documentation
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
