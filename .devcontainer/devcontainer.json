@@ -1,21 +1,25 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
-    "name": "Miniconda (Python 3)",
+    "name": "mondbaron/mvg",
     "image": "mcr.microsoft.com/devcontainers/miniconda",
     "features": {
-        "ghcr.io/devcontainers/features/common-utils:2": {
-            "installZsh": true,
-            "configureZshAsDefaultShell": true,
-            "installOhMyZsh": true,
-            "upgradePackages": true,
-            "username": "automatic",
-            "userUid": "automatic",
-            "userGid": "automatic"
-        },
         "ghcr.io/devcontainers-contrib/features/tox:2": {
             "version": "latest"
         }
     },
-    "postAttachCommand": "pip install --upgrade -e .[dev]"
+    "postAttachCommand": "pip install --upgrade -e .[dev]",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "njpwerner.autodocstring",
+                "aaron-bond.better-comments",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "ms-vscode-remote.remote-containers",
+                "spmeesseman.vscode-taskexplorer"
+            ]
+        }
+    }
 }

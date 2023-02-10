@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name    = "mvg"
-version = "1.0.1"
+version = "1.0.2"
 
 description = "An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG)."
 readme      = "README.md"
@@ -31,7 +31,6 @@ email = "m.dziura@tum.de"
 dev = [
   "autopep8",
   "build",
-  "bumpver",
   "flake8",
   "mypy",
   "pylint",
@@ -43,14 +42,3 @@ dev = [
   "sphinx-rtd-theme",
   "twine",
 ]
-
-[tool.bumpver]
-current_version = "1.0.1"
-version_pattern = "MAJOR.MINOR.PATCH"
-commit_message  = "bump version {old_version} -> {new_version}"
-commit          = true
-tag             = true
-push            = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [ 'current_version = "{version}"', 'version = "{version}"' ]
