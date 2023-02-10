@@ -11,6 +11,9 @@
     "postAttachCommand": "pip install --upgrade -e .[dev]",
     "customizations": {
         "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/opt/conda/bin/python"
+            },
             "extensions": [
                 "ms-python.python",
                 "njpwerner.autodocstring",
