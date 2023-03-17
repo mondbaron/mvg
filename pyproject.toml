@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name    = "mvg"
-version = "1.0.2"
+version = "1.0.3"
 
 description = "An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG)."
 readme      = "README.md"
@@ -29,9 +29,14 @@ email = "m.dziura@tum.de"
 
 [project.optional-dependencies]
 dev = [
-  "autopep8",
+  "black",
   "build",
   "flake8",
+  "flake8-bugbear",
+  "flake8-docstrings",
+  "flake8-pyproject",
+  "flake8-quotes",
+  "flake8-simplify",
   "mypy",
   "pylint",
   "pytest",
@@ -42,3 +47,24 @@ dev = [
   "sphinx-rtd-theme",
   "twine",
 ]
+
+[tool.pylint]
+max-line-length = 120
+
+[tool.flake8]
+extend-ignore   = "E203"
+inline-quotes   = "double"
+max-line-length = 120
+
+[tool.mypy]
+follow_imports         = "normal"
+ignore_missing_imports = true
+show_column_numbers    = true
+show_error_codes       = true
+strict                 = true
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"

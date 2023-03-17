@@ -1,6 +1,4 @@
-"""
-Provides the class MvgApi
-"""
+"""Provides the class MvgApi."""
 
 from __future__ import annotations
 
@@ -16,13 +14,15 @@ MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
 
 
 class Base(Enum):
-    """MVG APIs base URLs"""
+    """MVG APIs base URLs."""
+
     FIB = "https://www.mvg.de/api/fib/v2"
     ZDM = "https://www.mvg.de/.rest/zdm"
 
 
 class Endpoint(Enum):
-    """MVG API endpoints with URLs and arguments"""
+    """MVG API endpoints with URLs and arguments."""
+
     FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
     FIB_NEARBY: tuple[str, list[str]] = ("/station/nearby", ["latitude", "longitude"])
     FIB_DEPARTURE: tuple[str, list[str]] = ("/departure", ["globalId", "limit", "offsetInMinutes"])
@@ -33,6 +33,7 @@ class Endpoint(Enum):
 
 class TransportType(Enum):
     """MVG products defined by the API with name and icon."""
+
     BAHN: tuple[str, str] = ("Bahn", "mdi:train")
     SBAHN: tuple[str, str] = ("S-Bahn", "mdi:subway-variant")
     UBAHN: tuple[str, str] = ("U-Bahn", "mdi:subway")
@@ -48,19 +49,18 @@ class MvgApiError(Exception):
 
 
 class MvgApi:
-    """
-    A class interface to retrieve stations, lines and departures
-    from the Münchner Verkehrsgesellschaft (MVG) API at https://www.mvg.de.
-    Can be instanciated by station name and place or global station id.
+    """A class interface to retrieve stations, lines and departures from the MVG.
+
+    The implementation uses the Münchner Verkehrsgesellschaft (MVG) API at https://www.mvg.de.
+    It can be instanciated by station name and place or global station id.
 
     :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
     :raises MvgApiError: raised on communication failure or unexpected result
     :raises ValueError: raised on bad station id format
     """
 
-    def __init__(self,
-                 station: str
-                 ) -> None:
+    def __init__(self, station: str) -> None:
+        """Initialize the MVG interface."""
         station = station.strip()
         if not self.valid_station_id(station, True):
             raise ValueError("Invalid station.")
@@ -109,13 +109,13 @@ class MvgApi:
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url.url, ) as resp:
+                async with session.get(
+                    url.url,
+                ) as resp:
                     if resp.status != 200:
-                        raise MvgApiError(
-                            f"Bad API call: Got response ({resp.status}) from {url.url}")
+                        raise MvgApiError(f"Bad API call: Got response ({resp.status}) from {url.url}")
                     if resp.content_type != "application/json":
-                        raise MvgApiError(
-                            f"Bad API call: Got content type {resp.content_type} from {url.url}")
+                        raise MvgApiError(f"Bad API call: Got content type {resp.content_type} from {url.url}")
                     return await resp.json()
 
         except aiohttp.ClientError as exc:
@@ -302,10 +302,12 @@ class MvgApi:
         return asyncio.run(MvgApi.nearby_async(latitude, longitude))
 
     @staticmethod
-    async def departures_async(station_id: str,
-                               limit: int = MVGAPI_DEFAULT_LIMIT, offset: int = 0,
-                               transport_types: list[TransportType] | None = None
-                               ) -> list[dict[str, Any]]:
+    async def departures_async(
+        station_id: str,
+        limit: int = MVGAPI_DEFAULT_LIMIT,
+        offset: int = 0,
+        transport_types: list[TransportType] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Retreive the next departures for a station by station id.
 
@@ -336,12 +338,9 @@ class MvgApi:
 
         try:
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
-            args.update({"globalId": station_id,
-                         "offsetInMinutes": offset,
-                         "limit": limit})
+            args.update({"globalId": station_id, "offsetInMinutes": offset, "limit": limit})
             if transport_types:
-                args.update({
-                    "transportTypes": ",".join([product.name for product in transport_types])})
+                args.update({"transportTypes": ",".join([product.name for product in transport_types])})
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
             assert isinstance(result, list)
 
@@ -364,10 +363,9 @@ class MvgApi:
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
 
-    def departures(self,
-                   limit: int = MVGAPI_DEFAULT_LIMIT,
-                   offset: int = 0,
-                   transport_types: list[TransportType] | None = None) -> list[dict[str, Any]]:
+    def departures(
+        self, limit: int = MVGAPI_DEFAULT_LIMIT, offset: int = 0, transport_types: list[TransportType] | None = None
+    ) -> list[dict[str, Any]]:
         """
         Retreive the next departures.
 
@@ -378,7 +376,7 @@ class MvgApi:
         :return: a list of departures as dictionary
 
         Example result::
-            
+
             [{
                 'time': 1668524580,
                 'planned': 1668524460,
@@ -389,6 +387,6 @@ class MvgApi:
                 'cancelled': False,
                 'messages': []
             }, ... ]
-            
+
         """
         return asyncio.run(self.departures_async(self.station_id, limit, offset, transport_types))
