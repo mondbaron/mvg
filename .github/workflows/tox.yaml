@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -17,4 +17,4 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox
       - name: Test with tox
-        run: tox -p
+        run: tox
