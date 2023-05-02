@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name    = "mvg"
-version = "1.0.3"
+version = "1.0.4"
 
 description = "An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG)."
 readme      = "README.md"
@@ -32,11 +32,14 @@ dev = [
   "black",
   "build",
   "flake8",
+  "flake8",
   "flake8-bugbear",
   "flake8-docstrings",
   "flake8-pyproject",
   "flake8-quotes",
+  "flake8-requirements",
   "flake8-simplify",
+  "flake8-warnings",
   "mypy",
   "pylint",
   "pytest",
@@ -67,4 +70,5 @@ strict                 = true
 line-length = 120
 
 [tool.isort]
-profile = "black"
+profile        = "black"
+sort_reexports = true
