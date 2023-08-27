@@ -45,7 +45,7 @@ class TransportType(Enum):
 
     @classmethod
     def all(cls) -> list[TransportType]:
-        """Returns a list of all products."""
+        """Return a list of all products."""
         return [getattr(TransportType, c.name) for c in cls if c.name != "SEV"]
 
 
@@ -221,6 +221,8 @@ class MvgApi:
                     "id": query.strip(),
                     "name": result[0]["name"],
                     "place": result[0]["place"],
+                    "latitude": result[0]["latitude"],
+                    "longitude": result[0]["longitude"],
                 }
                 return station
 
@@ -231,6 +233,8 @@ class MvgApi:
                         "id": location["globalId"],
                         "name": location["name"],
                         "place": location["place"],
+                        "latitude": result[0]["latitude"],
+                        "longitude": result[0]["longitude"],
                     }
                     return station
 
