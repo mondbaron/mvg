@@ -41,7 +41,12 @@ class TransportType(Enum):
     BUS: tuple[str, str] = ("Bus", "mdi:bus")
     REGIONAL_BUS: tuple[str, str] = ("Regionalbus", "mdi:bus")
     SEV: tuple[str, str] = ("SEV", "mdi:taxi")
-    SHIFF: tuple[str, str] = ("Schiff", "mdi:ferry")
+    SCHIFF: tuple[str, str] = ("Schiff", "mdi:ferry")
+
+    @classmethod
+    def all(cls) -> list[TransportType]:
+        """Returns a list of all products."""
+        return [getattr(TransportType, c.name) for c in cls if c.name != "SEV"]
 
 
 class MvgApiError(Exception):
@@ -339,8 +344,9 @@ class MvgApi:
         try:
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
             args.update({"globalId": station_id, "offsetInMinutes": offset, "limit": limit})
-            if transport_types:
-                args.update({"transportTypes": ",".join([product.name for product in transport_types])})
+            if transport_types is None:
+                transport_types = TransportType.all()
+            args.update({"transportTypes": ",".join([product.name for product in transport_types])})
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
             assert isinstance(result, list)
 
