@@ -62,7 +62,7 @@ class MvgApi:
     def __init__(self, station: str) -> None:
         """Initialize the MVG interface."""
         station = station.strip()
-        if not self.valid_station_id(station, True):
+        if not self.valid_station_id(station):
             raise ValueError("Invalid station.")
 
         station_details = self.station(station)

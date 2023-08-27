@@ -16,6 +16,17 @@ def test_basic() -> None:
         print("BASIC: ", station, departures, end="\n\n")
 
 
+def test_faraway() -> None:
+    """Test: basic usage"""
+    station = MvgApi.station('Ebersberg, Ebersberg (Obb.)')
+    assert station['id'] == "de:09175:4070"
+    if station:
+        mvgapi = MvgApi(station['id'])
+        departures = mvgapi.departures()
+        assert len(departures) > 0
+        print("BASIC: ", station, departures, end="\n\n")
+
+
 def test_nearby() -> None:
     """Test: station by coordinates"""
     station = MvgApi.nearby(48.1, 11.5)
