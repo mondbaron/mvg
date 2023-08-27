@@ -198,11 +198,12 @@ class MvgApi:
 
         :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            { "id": "de:09162:70", "name": "Hauptbahnhof", "place": "München" }
+            {'id': 'de:09162:6', 'name': 'Hauptbahnhof', 'place': 'München',
+                'latitude': 48.14003, 'longitude': 11.56107}
         """
         query = query.strip()
         try:
@@ -251,11 +252,12 @@ class MvgApi:
 
         :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
+            {'id': 'de:09162:6', 'name': 'Hauptbahnhof', 'place': 'München',
+                'latitude': 48.14003, 'longitude': 11.56107}
         """
         return asyncio.run(MvgApi.station_async(query))
 
@@ -267,11 +269,12 @@ class MvgApi:
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
+            {'id': 'de:09162:70', 'name': 'Universität', 'place': 'München',
+                'latitude': 48.15007, 'longitude': 11.581}
         """
         try:
             args = dict.fromkeys(Endpoint.FIB_NEARBY.value[1])
@@ -285,6 +288,8 @@ class MvgApi:
                     "id": location["globalId"],
                     "name": location["name"],
                     "place": location["place"],
+                    "latitude": result[0]["latitude"],
+                    "longitude": result[0]["longitude"],
                 }
                 return station
 
@@ -302,11 +307,12 @@ class MvgApi:
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place'
+        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            { 'id': 'de:09162:70', 'name': 'Universität', 'place': 'München' }
+            {'id': 'de:09162:70', 'name': 'Universität', 'place': 'München',
+                'latitude': 48.15007, 'longitude': 11.581}
         """
         return asyncio.run(MvgApi.nearby_async(latitude, longitude))
 

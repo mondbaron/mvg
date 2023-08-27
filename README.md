@@ -85,6 +85,8 @@ if station:
 'id': 'de:09162:70', 
 'name': 'Universität', 
 'place': 'München'
+'latitude': 48.15007, 
+'longitude': 11.581
 }
 ```
 `departures()` results a `list` of `dict`:
