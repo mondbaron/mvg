@@ -262,19 +262,79 @@ class MvgApi:
         return asyncio.run(MvgApi.station_async(query))
 
     @staticmethod
-    async def nearby_async(latitude: float, longitude: float) -> dict[str, str] | None:
+    async def nearby_async(
+        latitude: float,
+        longitude: float,
+        transport_types: list[TransportType] | None = None,
+    ) -> dict[str, str] | None:
         """
         Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
+        :param transport_types: filter by transport types, defaults to None (all types)
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
+        :return: the first matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            {'id': 'de:09162:70', 'name': 'Universität', 'place': 'München',
-                'latitude': 48.15007, 'longitude': 11.581}
+            {
+                'id': 'de:09162:1480',
+                'name': 'Forstenrieder Allee',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['U-Bahn', 'Bus']
+            }
+        """
+        stations = await MvgApi.nearby_multi_async(
+            latitude=latitude,
+            longitude=longitude,
+            transport_types=transport_types,
+            limit=1,
+        )
+
+        if not stations:
+            return None
+
+        return stations[0]
+
+    @staticmethod
+    async def nearby_multi_async(
+        latitude: float,
+        longitude: float,
+        transport_types: list[TransportType] | None = None,
+        limit: int = -1,
+    ) -> list[dict[str, str]]:
+        """
+        Find the nearest stations by coordinates.
+
+        :param latitude: coordinate in decimal degrees
+        :param longitude: coordinate in decimal degrees
+        :param transport_types: filter by transport types, defaults to None (all types)
+        :param limit: limit number of stations returned. set -1 for max.
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the list of nearby stations ordered by increasing distance as list of dictionary
+                    with keys 'id', 'name', 'place', 'latitude', 'longitude'
+
+        Example result::
+
+            [{
+                'id': 'de:09162:1480',
+                'name': 'Forstenrieder Allee',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['U-Bahn', 'Bus']
+            },
+            {
+                'id': 'de:09162:1409',
+                'name': 'Limmatstraße',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['Bus']
+            }, ...]
         """
         try:
             args = dict.fromkeys(Endpoint.FIB_NEARBY.value[1])
@@ -282,39 +342,103 @@ class MvgApi:
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_NEARBY, args)
             assert isinstance(result, list)
 
-            # return first location of type "STATION"
-            for location in result:
-                station = {
-                    "id": location["globalId"],
-                    "name": location["name"],
-                    "place": location["place"],
-                    "latitude": result[0]["latitude"],
-                    "longitude": result[0]["longitude"],
-                }
-                return station
+            if transport_types is None:
+                transport_types = TransportType.all()
 
-            # return None if no station was found
-            return None
+            query_transport_types = [t.name for t in transport_types]
+
+            # return locations of type "STATION"
+            return_stations = []
+            for location in result:
+                location_transport_types = location["transportTypes"]
+
+                if any([query_type in location_transport_types for query_type in query_transport_types]):
+                    station = {
+                        "id": location["globalId"],
+                        "name": location["name"],
+                        "place": location["place"],
+                        "latitude": result[0]["latitude"],
+                        "longitude": result[0]["longitude"],
+                        "types": [TransportType[t].value[0] for t in location_transport_types]
+                    }
+                    return_stations.append(station)
+
+            # limit results
+            if limit < 0:
+                # if limit is negative, return all available results
+                return return_stations
+
+            return return_stations[:limit]
 
         except (AssertionError, KeyError) as exc:
             raise MvgApiError("Bad API call: Could not parse station data") from exc
 
     @staticmethod
-    def nearby(latitude: float, longitude: float) -> dict[str, str] | None:
+    def nearby(
+        latitude: float,
+        longitude: float,
+        transport_types: list[TransportType] | None = None,
+    ) -> dict[str, str] | None:
         """
         Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
+        :param transport_types: filter by transport types, defaults to None (all types)
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
+        :return: the first matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
-            {'id': 'de:09162:70', 'name': 'Universität', 'place': 'München',
-                'latitude': 48.15007, 'longitude': 11.581}
+            {
+                'id': 'de:09162:1480',
+                'name': 'Forstenrieder Allee',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['U-Bahn', 'Bus']
+            }
         """
-        return asyncio.run(MvgApi.nearby_async(latitude, longitude))
+        return asyncio.run(MvgApi.nearby_async(latitude, longitude, transport_types))
+
+    @staticmethod
+    def nearby_multi(
+        latitude: float,
+        longitude: float,
+        transport_types: list[TransportType] | None = None,
+        limit: int = -1
+    ) -> list[dict[str, str]]:
+        """
+        Find the nearest station by coordinates.
+
+        :param latitude: coordinate in decimal degrees
+        :param longitude: coordinate in decimal degrees
+        :param transport_types: filter by transport types, defaults to None (all types)
+        :param limit: limit number of stations returned. set -1 for max.
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the list of nearby stations ordered by increasing distance as list of dictionary
+                     with keys 'id', 'name', 'place', 'latitude', 'longitude', 'types'
+
+        Example result::
+
+            [{
+                'id': 'de:09162:1480',
+                'name': 'Forstenrieder Allee',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['U-Bahn', 'Bus']
+            },
+            {
+                'id': 'de:09162:1409',
+                'name': 'Limmatstraße',
+                'place': 'München',
+                'latitude': 48.0951,
+                'longitude': 11.49937,
+                'types': ['Bus']
+            }, ...]
+        """
+        return asyncio.run(MvgApi.nearby_multi_async(latitude, longitude, transport_types, limit))
 
     @staticmethod
     async def departures_async(
