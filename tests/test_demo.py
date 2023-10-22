@@ -72,6 +72,24 @@ def test_nearby_multi_limit_negative() -> None:
     print("NEARBY MULTI: ", stations, end="\n\n")
 
 
+def test_nearby_by_type_default_all() -> None:
+    """Test: station by coordinates and transport types (all)."""
+    lat = 48.137
+    lon = 11.575
+    station_types_none = MvgApi.nearby(lat, lon)
+    station_types_all = MvgApi.nearby(lat, lon, TransportType.all())
+    assert station_types_none["id"] == "de:09162:2"
+    assert station_types_none["id"] == station_types_all["id"]
+    print("NEARBY: ", station_types_none, end="\n\n")
+
+
+def test_nearby_by_type_() -> None:
+    """Test: station by coordinates and transport types (leading to returning non-first entry in stations)."""
+    station = MvgApi.nearby(48.137, 11.575, [TransportType.TRAM])
+    assert station["id"] == "de:09162:20"
+    print("NEARBY: ", station, end="\n\n")
+
+
 def test_filter() -> None:
     """Test: filters"""
     station = MvgApi.station("Universität, München")
