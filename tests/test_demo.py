@@ -45,6 +45,33 @@ def test_nearby() -> None:
     print("NEARBY: ", station, end="\n\n")
 
 
+def test_nearby_multi() -> None:
+    """Test: stations list by coordinates"""
+    stations = MvgApi.nearby_multi(48.1, 11.5)
+    assert stations[0]["id"] == "de:09162:1480"
+    assert isinstance(stations, list)
+    assert len(stations) > 1
+    print("NEARBY MULTI: ", stations, end="\n\n")
+
+
+def test_nearby_multi_limit() -> None:
+    """Test: stations list by coordinates with limit"""
+    stations = MvgApi.nearby_multi(48.1, 11.5, limit=3)
+    assert stations[0]["id"] == "de:09162:1480"
+    assert isinstance(stations, list)
+    assert len(stations) == 3
+    print("NEARBY MULTI: ", stations, end="\n\n")
+
+
+def test_nearby_multi_limit_negative() -> None:
+    """Test: stations list by coordinates with limit infinite"""
+    stations = MvgApi.nearby_multi(48.1, 11.5, limit=-1)
+    assert stations[0]["id"] == "de:09162:1480"
+    assert isinstance(stations, list)
+    assert len(stations) > 0
+    print("NEARBY MULTI: ", stations, end="\n\n")
+
+
 def test_filter() -> None:
     """Test: filters"""
     station = MvgApi.station("Universität, München")
