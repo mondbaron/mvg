@@ -31,6 +31,14 @@ class Endpoint(Enum):
     ZDM_LINES: tuple[str, list[str]] = ("/lines", [])
 
 
+class Occupancy(Enum):
+    """MVG API occupancy level"""
+    UNKNOWN: tuple[int, str] = (0, "Unknown")
+    LOW: tuple[int, str] = (1, "Low")
+    MEDIUM: tuple[int, str] = (2, "Medium")
+    HIGH: tuple[int, str] = (3, "High")
+
+
 class TransportType(Enum):
     """MVG products defined by the API with name and icon."""
 
@@ -490,12 +498,17 @@ class MvgApi:
                     {
                         "time": int(departure["realtimeDepartureTime"] / 1000),
                         "planned": int(departure["plannedDepartureTime"] / 1000),
+                        "delay": int(departure["delayInMinutes"]),
                         "line": departure["label"],
                         "destination": departure["destination"],
                         "type": TransportType[departure["transportType"]].value[0],
                         "icon": TransportType[departure["transportType"]].value[1],
                         "cancelled": departure["cancelled"],
                         "messages": departure["messages"],
+                        "stopPoint": departure["stopPointGlobalId"],
+                        "platform": departure.get("platform"),
+                        "occupancy": Occupancy[departure["occupancy"]].value[1],
+                        "realtime": departure["realtime"]
                     }
                 )
             return departures
