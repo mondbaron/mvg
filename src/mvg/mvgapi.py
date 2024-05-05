@@ -634,7 +634,6 @@ class MvgApi:
                 .isoformat(timespec="milliseconds")
                 .replace("+00:00", "Z")
             )
-        print(f"{routing_datetime_str=}")
 
         try:
             args = dict.fromkeys(Endpoint.FIB_CONNECTION.value[1])
@@ -656,7 +655,6 @@ class MvgApi:
             )
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_CONNECTION, args)
             assert isinstance(result, list)
-            print(f"{result=}")
 
             if disable_compaction:
                 return result
@@ -678,7 +676,8 @@ class MvgApi:
                 ) + timedelta(minutes=departureDelayInMinutes)
                 departureInMinutes = int(
                     (
-                        departureReal.astimezone(timezone.utc)
+                        #departureReal.astimezone(timezone.utc)
+                        datetime.fromisoformat(departure["parts"][0]["from"]["plannedDeparture"]) 
                         - datetime.now(timezone.utc)
                     ).total_seconds()
                     / 60
