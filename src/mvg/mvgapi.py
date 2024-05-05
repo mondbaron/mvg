@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
@@ -25,7 +26,20 @@ class Endpoint(Enum):
 
     FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
     FIB_NEARBY: tuple[str, list[str]] = ("/station/nearby", ["latitude", "longitude"])
-    FIB_DEPARTURE: tuple[str, list[str]] = ("/departure", ["globalId", "limit", "offsetInMinutes"])
+    FIB_DEPARTURE: tuple[str, list[str]] = (
+        "/departure",
+        ["globalId", "limit", "offsetInMinutes"],
+    )
+    FIB_CONNECTION: tuple[str, list[str]] = (
+        "/connection",
+        [
+            "originStationGlobalId",
+            "destinationStationGlobalId",
+            "routingDateTime",
+            "limit",
+            "offsetInMinutes",
+        ],
+    )
     ZDM_STATION_IDS: tuple[str, list[str]] = ("/mvgStationGlobalIds", [])
     ZDM_STATIONS: tuple[str, list[str]] = ("/stations", [])
     ZDM_LINES: tuple[str, list[str]] = ("/lines", [])
@@ -98,7 +112,9 @@ class MvgApi:
         return True
 
     @staticmethod
-    async def __api(base: Base, endpoint: Endpoint, args: dict[str, Any] | None = None) -> Any:
+    async def __api(
+        base: Base, endpoint: Endpoint, args: dict[str, Any] | None = None
+    ) -> Any:
         """
         Call the API endpoint with the given arguments.
 
@@ -118,13 +134,19 @@ class MvgApi:
                     url.url,
                 ) as resp:
                     if resp.status != 200:
-                        raise MvgApiError(f"Bad API call: Got response ({resp.status}) from {url.url}")
+                        raise MvgApiError(
+                            f"Bad API call: Got response ({resp.status}) from {url.url}: {await resp.text()}"
+                        )
                     if resp.content_type != "application/json":
-                        raise MvgApiError(f"Bad API call: Got content type {resp.content_type} from {url.url}")
+                        raise MvgApiError(
+                            f"Bad API call: Got content type {resp.content_type} from {url.url}"
+                        )
                     return await resp.json()
 
         except aiohttp.ClientError as exc:
-            raise MvgApiError(f"Bad API call: Got {str(type(exc))} from {url.url}") from exc
+            raise MvgApiError(
+                f"Bad API call: Got {str(type(exc))} from {url.url}"
+            ) from exc
 
     @staticmethod
     async def station_ids_async() -> list[str]:
@@ -352,14 +374,21 @@ class MvgApi:
             for location in result:
                 location_transport_types = location["transportTypes"]
 
-                if any([query_type in location_transport_types for query_type in query_transport_types]):
+                if any(
+                    [
+                        query_type in location_transport_types
+                        for query_type in query_transport_types
+                    ]
+                ):
                     station = {
                         "id": location["globalId"],
                         "name": location["name"],
                         "place": location["place"],
                         "latitude": result[0]["latitude"],
                         "longitude": result[0]["longitude"],
-                        "types": [TransportType[t].value[0] for t in location_transport_types]
+                        "types": [
+                            TransportType[t].value[0] for t in location_transport_types
+                        ],
                     }
                     return_stations.append(station)
 
@@ -406,7 +435,7 @@ class MvgApi:
         latitude: float,
         longitude: float,
         transport_types: list[TransportType] | None = None,
-        limit: int = -1
+        limit: int = -1,
     ) -> list[dict[str, str]]:
         """
         Find the nearest station by coordinates.
@@ -438,7 +467,9 @@ class MvgApi:
                 'types': ['Bus']
             }, ...]
         """
-        return asyncio.run(MvgApi.nearby_multi_async(latitude, longitude, transport_types, limit))
+        return asyncio.run(
+            MvgApi.nearby_multi_async(latitude, longitude, transport_types, limit)
+        )
 
     @staticmethod
     async def departures_async(
@@ -477,10 +508,18 @@ class MvgApi:
 
         try:
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
-            args.update({"globalId": station_id, "offsetInMinutes": offset, "limit": limit})
+            args.update(
+                {"globalId": station_id, "offsetInMinutes": offset, "limit": limit}
+            )
             if transport_types is None:
                 transport_types = TransportType.all()
-            args.update({"transportTypes": ",".join([product.name for product in transport_types])})
+            args.update(
+                {
+                    "transportTypes": ",".join(
+                        [product.name for product in transport_types]
+                    )
+                }
+            )
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
             assert isinstance(result, list)
 
@@ -504,7 +543,10 @@ class MvgApi:
             raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
 
     def departures(
-        self, limit: int = MVGAPI_DEFAULT_LIMIT, offset: int = 0, transport_types: list[TransportType] | None = None
+        self,
+        limit: int = MVGAPI_DEFAULT_LIMIT,
+        offset: int = 0,
+        transport_types: list[TransportType] | None = None,
     ) -> list[dict[str, Any]]:
         """
         Retreive the next departures.
@@ -529,4 +571,221 @@ class MvgApi:
             }, ... ]
 
         """
-        return asyncio.run(self.departures_async(self.station_id, limit, offset, transport_types))
+        return asyncio.run(
+            self.departures_async(self.station_id, limit, offset, transport_types)
+        )
+
+    # https://www.mvg.de/api/fib/v2/connection?originStationGlobalId=de:09184:2300&destinationStationGlobalId=de:09162:1110&routingDateTime=2024-05-05T08:10:22.803Z&routingDateTimeIsArrival=false&transportTypes=SCHIFF,RUFTAXI,BAHN,UBAHN,TRAM,SBAHN,BUS,REGIONAL_BUS
+    @staticmethod
+    async def connection_async(
+        origin_station_id: str,
+        destination_station_id: str,
+        routing_datetime: datetime | None = None,
+        offset: int = 0,
+        transport_types: list[TransportType] | None = None,
+        disable_compaction: bool | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Retreive the next connections.
+
+        :param origin_station_id: the global station id ('de:09162:70')
+        :param destination_station_id: the global station id ('de:09162:70')
+        :param routing_datetime: the datetime of the routing, defaults to now
+        :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
+        :param transport_types: filter by transport type, defaults to None
+        :param disable_compaction: disable compaction of the result, defaults to None
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :raises ValueError: raised on bad station id format
+        :return: a list of departures as dictionary or whole result if disable_compaction is True
+
+        Example result::
+
+            [{'departureDelayInMinutes': 0,
+            'departureInMinutes': 8,
+            'departurePlanned': '2024-05-05T13:11:00+02:00',
+            'departureReal': '2024-05-05T13:11+02:00',
+            'departureStation': 'Pasing',
+            'destinationDelayInMinutes': 0,
+            'destinationPlanned': '2024-05-05T13:23:00+02:00',
+            'destinationStation': 'München, Ostbahnhof',
+            'icon': 'mdi:subway-variant',
+            'line': 'S8',
+            'messages': [],
+            'type': 'S-Bahn',
+            }, ... ]
+        """
+        origin_station_id.strip()
+        if not MvgApi.valid_station_id(origin_station_id):
+            raise ValueError("Invalid format of origin station id.")
+
+        destination_station_id.strip()
+        if not MvgApi.valid_station_id(destination_station_id):
+            raise ValueError("Invalid format of destination station id.")
+
+        if routing_datetime is None:
+            routing_datetime_str = (
+                datetime.now(timezone.utc)
+                .isoformat(timespec="milliseconds")
+                .replace("+00:00", "Z")
+            )
+        else:
+            routing_datetime_str = (
+                routing_datetime.astimezone(timezone.utc)
+                .isoformat(timespec="milliseconds")
+                .replace("+00:00", "Z")
+            )
+        print(f"{routing_datetime_str=}")
+
+        try:
+            args = dict.fromkeys(Endpoint.FIB_CONNECTION.value[1])
+            args.update(
+                {
+                    "originStationGlobalId": origin_station_id,
+                    "destinationStationGlobalId": destination_station_id,
+                    "routingDateTime": routing_datetime_str,
+                }
+            )
+            if transport_types is None:
+                transport_types = TransportType.all()
+            args.update(
+                {
+                    "transportTypes": ",".join(
+                        [product.name for product in transport_types]
+                    )
+                }
+            )
+            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_CONNECTION, args)
+            assert isinstance(result, list)
+            print(f"{result=}")
+
+            if disable_compaction:
+                return result
+
+            departures: list[dict[str, Any]] = []
+            for departure in result:
+                departureDelayInMinutes = 0
+                destinationDelayInMinutes = 0
+                if "departureDelayInMinutes" in departure["parts"][0]["from"]:
+                    departureDelayInMinutes = departure["parts"][0]["from"][
+                        "departureDelayInMinutes"
+                    ]
+                if "arrivalDelayInMinutes" in departure["parts"][-1]["from"]:
+                    destinationDelayInMinutes = departure["parts"][-1]["from"][
+                        "arrivalDelayInMinutes"
+                    ]
+                departureReal = datetime.fromisoformat(
+                    departure["parts"][0]["from"]["plannedDeparture"]
+                ) + timedelta(minutes=departureDelayInMinutes)
+                departureInMinutes = int(
+                    (
+                        departureReal.astimezone(timezone.utc)
+                        - datetime.now(timezone.utc)
+                    ).total_seconds()
+                    / 60
+                )
+                if departureInMinutes < offset:
+                    continue
+                departures.append(
+                    {
+                        "line": departure["parts"][0]["line"]["label"],
+                        "departureStation": departure["parts"][0]["from"]["name"],
+                        "departurePlanned": departure["parts"][0]["from"][
+                            "plannedDeparture"
+                        ],
+                        "departureInMinutes": departureInMinutes,
+                        "departureReal": departureReal.isoformat(timespec="minutes"),
+                        "destinationStation": departure["parts"][-1]["to"]["name"],
+                        "destinationPlanned": departure["parts"][-1]["to"][
+                            "plannedDeparture"
+                        ],
+                        "departureDelayInMinutes": departureDelayInMinutes,
+                        "destinationDelayInMinutes": destinationDelayInMinutes,
+                        "type": TransportType[
+                            departure["parts"][0]["line"]["transportType"]
+                        ].value[0],
+                        "icon": TransportType[
+                            departure["parts"][0]["line"]["transportType"]
+                        ].value[1],
+                        "messages": departure["parts"][0]["messages"],
+                    }
+                )
+            return departures
+
+        except (AssertionError, KeyError) as exc:
+            raise MvgApiError("Bad MVG API call: Invalid departure data") from exc
+
+    @staticmethod
+    def connection(
+        origin_station_id: str,
+        destination_station_id: str,
+        routing_datetime: datetime | None = None,
+        offset: int = 0,
+        transport_types: list[TransportType] | None = None,
+        disable_compaction: bool | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Retreive the next connections.
+
+        :param origin_station_id: the global station id ('de:09162:70') or a string to be used to lookup the station id
+        :param destination_station_id: the global station id ('de:09162:70')  or a string to be used to lookup the station id
+        :param routing_datetime: the datetime of the routing, defaults to now
+        :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
+        :param transport_types: filter by transport type, defaults to None
+        :param disable_compaction: disable compaction of the result, defaults to None
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :raises ValueError: raised on bad station id format
+        :return: a list of departures as dictionary or whole result if disable_compaction is True
+
+        Example result::
+
+            [{'departureDelayInMinutes': 0,
+            'departureInMinutes': 8,
+            'departurePlanned': '2024-05-05T13:11:00+02:00',
+            'departureReal': '2024-05-05T13:11+02:00',
+            'departureStation': 'Pasing',
+            'destinationDelayInMinutes': 0,
+            'destinationPlanned': '2024-05-05T13:23:00+02:00',
+            'destinationStation': 'München, Ostbahnhof',
+            'icon': 'mdi:subway-variant',
+            'line': 'S8',
+            'messages': [],
+            'type': 'S-Bahn',
+            }, ... ]
+        """
+        origin_station_id.strip()
+        if not MvgApi.valid_station_id(origin_station_id):
+            origin_station_id = MvgApi.station(origin_station_id)["id"]
+            if origin_station_id is None:
+                raise ValueError("Invalid format of origin station id.")
+
+        destination_station_id.strip()
+        if not MvgApi.valid_station_id(destination_station_id):
+            destination_station_id = MvgApi.station(destination_station_id)["id"]
+            if destination_station_id is None:
+                raise ValueError("Invalid format of destination station id.")
+
+        return asyncio.run(
+            MvgApi.connection_async(
+                origin_station_id,
+                destination_station_id,
+                routing_datetime,
+                offset,
+                transport_types,
+                disable_compaction,
+            )
+        )
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    pprint(
+        MvgApi.connection(
+            "Pasing",
+            "Ostbahnhof",
+            datetime.now(timezone.utc),
+            0,
+            TransportType.all(),
+            False,
+        )
+    )
