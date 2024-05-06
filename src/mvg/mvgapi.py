@@ -682,6 +682,9 @@ class MvgApi:
                     ).total_seconds()
                     / 60
                 )
+                destinationReal = datetime.fromisoformat(
+                    departure["parts"][-1]["to"]["plannedDeparture"]
+                ) + timedelta(minutes=destinationDelayInMinutes)
                 if departureInMinutes < offset:
                     continue
                 departures.append(
@@ -692,20 +695,20 @@ class MvgApi:
                             "plannedDeparture"
                         ],
                         "departureInMinutes": departureInMinutes,
-                        "departureReal": departureReal.isoformat(timespec="minutes"),
+                        "departureDelayInMinutes": departureDelayInMinutes,
+                        "departureReal": departureReal.isoformat(timespec="seconds"),
                         "destinationStation": departure["parts"][-1]["to"]["name"],
                         "destinationPlanned": departure["parts"][-1]["to"][
                             "plannedDeparture"
                         ],
-                        "departureDelayInMinutes": departureDelayInMinutes,
                         "destinationDelayInMinutes": destinationDelayInMinutes,
+                        "destinationReal": destinationReal.isoformat(timespec="seconds"),
                         "type": TransportType[
                             departure["parts"][0]["line"]["transportType"]
                         ].value[0],
                         "icon": TransportType[
                             departure["parts"][0]["line"]["transportType"]
                         ].value[1],
-                        "messages": departure["parts"][0]["messages"],
                     }
                 )
             return departures
