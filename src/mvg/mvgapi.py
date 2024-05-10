@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import asyncio
 import re
 from datetime import datetime, timedelta, timezone
@@ -129,7 +130,7 @@ class MvgApi:
         url.set(query_params=args)
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(trust_env=True if "https_proxy" in os.environ else False) as session:
                 async with session.get(
                     url.url,
                 ) as resp:
