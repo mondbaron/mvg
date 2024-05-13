@@ -761,14 +761,14 @@ class MvgApi:
             if origin_station_id_lookup := MvgApi.station(origin_station_id):
                 origin_station_id = origin_station_id_lookup["id"]
             else:
-                raise ValueError("Invalid format of origin station id.")
+                raise ValueError("Unknown origin station id.")
 
         destination_station_id.strip()  
         if not MvgApi.valid_station_id(destination_station_id):
             if destination_station_id_lookup := MvgApi.station(destination_station_id):
                 destination_station_id = destination_station_id_lookup["id"]
             else:
-                raise ValueError("Invalid format of destination station id.")
+                raise ValueError("Unknonwn destination station id.")
 
         return asyncio.run(
             MvgApi.connection_async(
