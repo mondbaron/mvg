@@ -755,16 +755,19 @@ class MvgApi:
             'type': 'S-Bahn',
             }, ... ]
         """
+
         origin_station_id.strip()
         if not MvgApi.valid_station_id(origin_station_id):
-            origin_station_id = MvgApi.station(origin_station_id)["id"]
-            if origin_station_id is None:
+            if origin_station_id_lookup := MvgApi.station(origin_station_id):
+                origin_station_id = origin_station_id_lookup["id"]
+            else:
                 raise ValueError("Invalid format of origin station id.")
 
-        destination_station_id.strip()
+        destination_station_id.strip()  
         if not MvgApi.valid_station_id(destination_station_id):
-            destination_station_id = MvgApi.station(destination_station_id)["id"]
-            if destination_station_id is None:
+            if destination_station_id_lookup := MvgApi.station(destination_station_id):
+                destination_station_id = destination_station_id_lookup["id"]
+            else:
                 raise ValueError("Invalid format of destination station id.")
 
         return asyncio.run(
@@ -792,3 +795,4 @@ if __name__ == "__main__":
             False,
         )
     )
+
