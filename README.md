@@ -1,3 +1,59 @@
+# Changelog medlor
+
+My Home-Assistant addon needs an updated MVG API.
+This munich_transport_trip modification can be used to lookup trips instead of departures. 
+munich_transport_trip and munich_transport can use my modified MVG API (compatible).
+
+```
+1. munich_transport_trip
+   https://github.com/medlor/mvg
+   https://github.com/medlor/home-assistant-munich-transport
+   Follow setup as described in Readme. Because we overwrite the MVG package, we need to login
+   to docker then manually issue (only needed in case original MVG package has already been installed):
+   $ pip uninstall mvg
+   $ pip install git+https://github.com/medlor/mvg@main
+   Use Icongito Window to see changes in the Lovelace cards immediately.
+```
+## config/configuration.yaml
+```
+sensor:
+  - platform: munich_transport_trip
+    departures:
+      - name: "Giesing nach Frankfurter Ring"
+        departure_station: "de:09162:1110"  #"Fasanenpark (b M..nchen)"
+        destination_station: "de:09162:750" # Frankfurter Ring
+        walking_time: 6
+```
+
+## Setup HA automations to trigger a refresh when you need it:
+```
+alias: "MVG: Update Trip to Frankfurter Ring"
+description: ""
+trigger:
+  - platform: time_pattern
+    minutes: /1
+condition:
+  - condition: time
+    after: "07:00:00"
+    before: "08:30:00"
+    weekday:
+      - mon
+      - tue
+      - wed
+      - thu
+      - fri
+action:
+  - service: homeassistant.update_entity
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+        - sensor.giesing_nach_frankfurter_ring
+mode: single
+```
+
+--------------------------
+
 # mvg
 
 This package aims to provide a clean, performant and barrier-free interface to timetable information of the *Münchner Verkehrsgesellschaft* (MVG), responsible for public transport in Munich. It exports the class `MvgApi` to retrieve stations, lines and departures from the unofficial JSON API at https://www.mvg.de.
