@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -18,21 +18,21 @@ MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
 class Base(Enum):
     """MVG APIs base URLs."""
 
-    FIB = "https://www.mvg.de/api/fib/v2"
+    FIB = "https://www.mvg.de/api/bgw-pt/v3"
     ZDM = "https://www.mvg.de/.rest/zdm"
 
 
 class Endpoint(Enum):
     """MVG API endpoints with URLs and arguments."""
 
-    FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
+    FIB_LOCATION: tuple[str, list[str]] = ("/locations", ["query"])
     FIB_NEARBY: tuple[str, list[str]] = ("/station/nearby", ["latitude", "longitude"])
     FIB_DEPARTURE: tuple[str, list[str]] = (
         "/departure",
         ["globalId", "limit", "offsetInMinutes"],
     )
     FIB_CONNECTION: tuple[str, list[str]] = (
-        "/connection",
+        "/routes",
         [
             "originStationGlobalId",
             "destinationStationGlobalId",
@@ -130,7 +130,9 @@ class MvgApi:
         url.set(query_params=args)
 
         try:
-            async with aiohttp.ClientSession(trust_env=True if "https_proxy" in os.environ else False) as session:
+            async with aiohttp.ClientSession(
+                trust_env=True if "https_proxy" in os.environ else False
+            ) as session:
                 async with session.get(
                     url.url,
                 ) as resp:
@@ -577,6 +579,8 @@ class MvgApi:
         )
 
     # https://www.mvg.de/api/fib/v2/connection?originStationGlobalId=de:09184:2300&destinationStationGlobalId=de:09162:1110&routingDateTime=2024-05-05T08:10:22.803Z&routingDateTimeIsArrival=false&transportTypes=SCHIFF,RUFTAXI,BAHN,UBAHN,TRAM,SBAHN,BUS,REGIONAL_BUS
+    #  https://www.mvg.de/api/bgw-pt/v3/routes?originStationGlobalId=de:09184:2300&destinationStationGlobalId=de:09162:1110&routingDateTime=2024-11-05T10:50:04.681Z&routingDateTimeIsArrival=false&transportTypes=SCHIFF,RUFTAXI,BAHN,UBAHN,TRAM,SBAHN,BUS,REGIONAL_BUS
+
     @staticmethod
     async def connection_async(
         origin_station_id: str,
@@ -677,8 +681,10 @@ class MvgApi:
                 ) + timedelta(minutes=departureDelayInMinutes)
                 departureInMinutes = int(
                     (
-                        #departureReal.astimezone(timezone.utc)
-                        datetime.fromisoformat(departure["parts"][0]["from"]["plannedDeparture"]) 
+                        # departureReal.astimezone(timezone.utc)
+                        datetime.fromisoformat(
+                            departure["parts"][0]["from"]["plannedDeparture"]
+                        )
                         - datetime.now(timezone.utc)
                     ).total_seconds()
                     / 60
@@ -703,7 +709,9 @@ class MvgApi:
                             "plannedDeparture"
                         ],
                         "destinationDelayInMinutes": destinationDelayInMinutes,
-                        "destinationReal": destinationReal.isoformat(timespec="seconds"),
+                        "destinationReal": destinationReal.isoformat(
+                            timespec="seconds"
+                        ),
                         "type": TransportType[
                             departure["parts"][0]["line"]["transportType"]
                         ].value[0],
