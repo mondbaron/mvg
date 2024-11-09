@@ -60,7 +60,7 @@ class MvgApi:
     The implementation uses the Münchner Verkehrsgesellschaft (MVG) API at https://www.mvg.de.
     It can be instanciated by station name and place or global station id.
 
-    :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
+    :param station: global station id (e.g. 'de:09162:70')
     :raises MvgApiError: raised on communication failure or unexpected result
     :raises ValueError: raised on bad station id format
     """

@@ -16,10 +16,10 @@ Therefore, the following **usage restrictions from the MVG Imprint do apply to a
 
 The project was inspired by two existing packages:
 - The package [PyMVGLive](https://pypi.org/project/PyMVGLive) from 2017 does provide an interface to the former MVGLive API at `mvg-live.de`. As of 2022 the MVGLive website does not exist anymore and the package has been archived. Although the old API still works for some stations, it does not for others - mainly due to updated station identifiers. Therefore, the package is considered deprecated and cannot be used for new designs.
-- The newer package [mvg-api](https://pypi.org/project/mvg-api) offers an implementation from 2020 based on the API at `www.mvg.de/api/fahrinfo`. It considers the updated station identifiers and still works perfectly. This package provides the basis for recent projects such as [mvg-cli](https://pypi.org/project/mvg-cli).
+- The newer package [mvg-api](https://pypi.org/project/mvg-api) offers an implementation from 2020 based on the API at `www.mvg.de/api/fahrinfo`, which went offline in 2024. It considered the updated station identifiers and provided the basis for other projects such as [mvg-cli](https://pypi.org/project/mvg-cli).
 
 So why another MVG API package? In the end three reasons were decisive:
-- The recent website at uses a new API at `www.mvg.de/api/fib/v2`, which seems to be more performant than the previous one.
+- The recent website at uses a new API at `www.mvg.de/api/bgw-pt/v3`, which seems to be more performant than the previous one.
 - None of the existing packages offer asynchronous calls for concurrent code projects.
 - An optimized package was required to develop a [Home Assistant](https://www.home-assistant.io) integration.
 
@@ -35,7 +35,7 @@ pip install mvg
 The interface was designed to be simple and intuitive. Basic usage follows these steps:
 - Find a station using `MvgApi.station(station)` by its name and place (e.g. `"Universität, München"`) or its global station identifier (e.g. `"de:09162:70"`).
 - Alternatively, `MvgApi.nearby(latitude, longitude)` finds the nearest station.
-- Create an API instance using `MvgApi(station)` by station name and place or its global identifier.
+- Create an API instance using `MvgApi(station)` by its global identifier.
 - Use the method `.departures()` to retrieve information from the API.
 
 A basic example looks like this:
