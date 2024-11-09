@@ -274,13 +274,19 @@ class MvgApi:
         return asyncio.run(MvgApi.station_async(query))
 
     @staticmethod
-    async def nearby_async(latitude: float, longitude: float) -> dict[str, str] | None:
+    async def nearby_async(
+        latitude: float,
+        longitude: float,
+        full_list: bool = True,
+    ) -> dict[str, str] | list[dict[str, str]] | None:
         """Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
+        :param full_list: return full list of stations instead of a single location
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
+            or a list of such station dictionaries, if requested by `full_list` argument
 
         Example result::
 
@@ -294,15 +300,19 @@ class MvgApi:
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
 
-            # return first location of type "STATION"
-            for location in result:
-                return {
-                    "id": location["globalId"],
-                    "name": location["name"],
-                    "place": location["place"],
-                    "latitude": result[0]["latitude"],
-                    "longitude": result[0]["longitude"],
-                }
+            if len(result) > 0:
+                locations = [
+                    {
+                        "id": location["globalId"],
+                        "name": location["name"],
+                        "place": location["place"],
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"],
+                    }
+                    for location in result
+                ]
+                # return full list or only nearest location
+                return locations if full_list else locations[0]
 
         except (AssertionError, KeyError) as exc:
             msg = "Bad API call: Could not parse station data."
@@ -312,19 +322,25 @@ class MvgApi:
             return None
 
     @staticmethod
-    def nearby(latitude: float, longitude: float) -> dict[str, str] | None:
+    def nearby(
+        latitude: float,
+        longitude: float,
+        full_list: bool = False,
+    ) -> dict[str, str] | list[dict[str, str]] | None:
         """Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
+        :param full_list: return full list of stations instead of a single location
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
+            or a list of such station dictionaries, if requested by `full_list` argument
 
         Example result::
 
             {"id": "de:09162:70", "name": "Universität", "place": "München", "latitude": 48.15007, "longitude": 11.581}
         """
-        return asyncio.run(MvgApi.nearby_async(latitude, longitude))
+        return asyncio.run(MvgApi.nearby_async(latitude, longitude, full_list))
 
     @staticmethod
     async def departures_async(

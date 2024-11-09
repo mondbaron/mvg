@@ -45,6 +45,15 @@ def test_nearby() -> None:
     print("NEARBY: ", station, end="\n\n")
 
 
+def test_nearby_list() -> None:
+    """Test: station list by coordinates."""
+    stations = MvgApi.nearby(48.1, 11.5, True)
+    assert isinstance(stations, list)
+    assert len(stations) > 0
+    assert stations[0]["id"] == "de:09162:1480"
+    print("NEARBY: ", stations, end="\n\n")
+
+
 def test_filter() -> None:
     """Test: filters."""
     station = MvgApi.station("Universität, München")
