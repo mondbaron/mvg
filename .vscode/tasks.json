@@ -7,7 +7,7 @@
             "label": "Run Tests (tox)",
             "group": "test",
             "type": "shell",
-            "command": "tox"
+            "command": "tox -p -q"
         },
         {
             "label": "Build package (build)",

@@ -1,26 +1,25 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
     "name": "mondbaron/mvg",
-    "image": "mcr.microsoft.com/devcontainers/miniconda",
-    "features": {
-        "ghcr.io/devcontainers-contrib/features/tox:2": {
-            "version": "latest"
-        }
+    "image": "mcr.microsoft.com/devcontainers/python",
+    "runArgs": [
+        "--userns=keep-id"
+    ],
+    "containerUser": "vscode",
+    "updateRemoteUserUID": true,
+    "containerEnv": {
+        "HOME": "/home/vscode"
     },
+    "postCreateCommand": "pip install tox",
     "postAttachCommand": "pip install --upgrade -e .[dev]",
     "customizations": {
         "vscode": {
-            "settings": {
-                "python.defaultInterpreterPath": "/opt/conda/bin/python"
-            },
             "extensions": [
                 "ms-python.python",
+                "charliermarsh.ruff",
                 "njpwerner.autodocstring",
                 "aaron-bond.better-comments",
                 "tamasfe.even-better-toml",
                 "redhat.vscode-yaml",
-                "ms-vscode-remote.remote-containers",
                 "spmeesseman.vscode-taskexplorer"
             ]
         }

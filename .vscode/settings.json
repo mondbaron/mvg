@@ -1,9 +1,13 @@
 {
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.mypyEnabled": true,
-    "python.formatting.provider": "black",
+    "ruff.nativeServer": true,
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        }
+    },
     "evenBetterToml.formatter.arrayAutoExpand": true,
     "evenBetterToml.formatter.alignEntries": true,
     "evenBetterToml.formatter.compactEntries": false,
@@ -16,7 +20,6 @@
     "taskExplorer.enabledTasks": {
         "ant": false,
         "bash": false,
-        "batch": false,
         "composer": false,
         "gradle": false,
         "grunt": false,
