@@ -1,6 +1,6 @@
 {
     "name": "mondbaron/mvg",
-    "image": "mcr.microsoft.com/devcontainers/python",
+    "image": "mcr.microsoft.com/vscode/devcontainers/miniconda:3",
     "runArgs": [
         "--userns=keep-id"
     ],
@@ -9,7 +9,7 @@
     "containerEnv": {
         "HOME": "/home/vscode"
     },
-    "postCreateCommand": "pip install tox",
+    "postCreateCommand": "conda install --yes conda-forge::tox",
     "postAttachCommand": "pip install --upgrade -e .[dev]",
     "customizations": {
         "vscode": {

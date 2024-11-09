@@ -20,6 +20,7 @@
     "taskExplorer.enabledTasks": {
         "ant": false,
         "bash": false,
+        "batch": false,
         "composer": false,
         "gradle": false,
         "grunt": false,
