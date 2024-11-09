@@ -117,7 +117,7 @@ class MvgApi:
         url.set(query_params=args)
 
         try:
-            async with aiohttp.ClientSession() as session, session.get(
+            async with aiohttp.ClientSession(trust_env=True) as session, session.get(
                 url.url,
             ) as resp:
                 if resp.status != HTTPStatus.OK:
