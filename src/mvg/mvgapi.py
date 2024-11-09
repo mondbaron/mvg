@@ -17,16 +17,16 @@ MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
 class Base(Enum):
     """MVG APIs base URLs."""
 
-    FIB = "https://www.mvg.de/api/fib/v2"
+    FIB = "https://www.mvg.de/api/bgw-pt/v3"
     ZDM = "https://www.mvg.de/.rest/zdm"
 
 
 class Endpoint(Enum):
     """MVG API endpoints with URLs and arguments."""
 
-    FIB_LOCATION: tuple[str, list[str]] = ("/location", ["query"])
-    FIB_NEARBY: tuple[str, list[str]] = ("/station/nearby", ["latitude", "longitude"])
-    FIB_DEPARTURE: tuple[str, list[str]] = ("/departure", ["globalId", "limit", "offsetInMinutes"])
+    FIB_LOCATION: tuple[str, list[str]] = ("/locations", ["query"])
+    FIB_NEARBY: tuple[str, list[str]] = ("/stations/nearby", ["latitude", "longitude"])
+    FIB_DEPARTURE: tuple[str, list[str]] = ("/departures", ["globalId", "limit", "offsetInMinutes"])
     ZDM_STATION_IDS: tuple[str, list[str]] = ("/mvgStationGlobalIds", [])
     ZDM_STATIONS: tuple[str, list[str]] = ("/stations", [])
     ZDM_LINES: tuple[str, list[str]] = ("/lines", [])
@@ -103,7 +103,7 @@ class MvgApi:
         return True
 
     @staticmethod
-    async def __api(base: Base, endpoint: Endpoint, args: dict[str, Any] | None = None) -> Any:  # noqa: ANN401
+    async def __api(base: Base, endpoint: Endpoint | tuple[str, list[str]], args: dict[str, Any] | None = None) -> Any:  # noqa: ANN401
         """Call the API endpoint with the given arguments.
 
         :param base: the API base
@@ -113,7 +113,7 @@ class MvgApi:
         :return: the response as JSON object
         """
         url = furl(base.value)
-        url /= endpoint.value[0]
+        url /= endpoint.value[0] if isinstance(endpoint, Endpoint) else endpoint[0]
         url.set(query_params=args)
 
         try:
@@ -217,37 +217,41 @@ class MvgApi:
         """  # noqa: E501
         query = query.strip()
         try:
+            # return details from ZDM if query is a station id
+            if MvgApi.valid_station_id(query):
+                stations_endpoint = Endpoint.ZDM_STATIONS.value[0]
+                station_endpoint = f"{stations_endpoint}/{query}"
+                result = await MvgApi.__api(Base.ZDM, (station_endpoint, []))
+                if not isinstance(result, dict):
+                    msg = f"Bad API call: Expected a dict, but got {type(result)}."
+                    raise MvgApiError(msg)
+
+                return {
+                    "id": result["id"],
+                    "name": result["name"],
+                    "place": result["place"],
+                    "latitude": result["latitude"],
+                    "longitude": result["longitude"],
+                }
+
+            # use open search if query is not a station id
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
-            args.update({"query": query.strip()})
+            args.update({"query": query.strip(), "locationTypes": "STATION"})
             result = await MvgApi.__api(Base.FIB, Endpoint.FIB_LOCATION, args)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
 
-            # return None if result is empty
-            if len(result) == 0:
-                return None
-
-            # return name and place from first result if station id was provided
-            if MvgApi.valid_station_id(query):
+            # return first location if lis is not empty
+            if len(result) > 0:
                 return {
-                    "id": query.strip(),
+                    "id": result[0]["globalId"],
                     "name": result[0]["name"],
                     "place": result[0]["place"],
                     "latitude": result[0]["latitude"],
                     "longitude": result[0]["longitude"],
                 }
 
-            # return first location of type "STATION" if name was provided
-            for location in result:
-                if location["type"] == "STATION":
-                    return {
-                        "id": location["globalId"],
-                        "name": location["name"],
-                        "place": location["place"],
-                        "latitude": result[0]["latitude"],
-                        "longitude": result[0]["longitude"],
-                    }
         except (AssertionError, KeyError) as exc:
             msg = "Bad API call: Could not parse station data."
             raise MvgApiError(msg) from exc
@@ -361,7 +365,7 @@ class MvgApi:
             raise ValueError(msg)
 
         try:
-            args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
+            args = dict.fromkeys(Endpoint.FIB_DEPARTURE.value[1])
             args.update({"globalId": station_id, "offsetInMinutes": offset, "limit": limit})
             if transport_types is None:
                 transport_types = TransportType.all()
