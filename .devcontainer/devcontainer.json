@@ -1,16 +1,12 @@
 {
     "name": "mondbaron/mvg",
-    "image": "mcr.microsoft.com/vscode/devcontainers/miniconda:3",
-    "runArgs": [
-        "--userns=keep-id"
-    ],
-    "containerUser": "vscode",
-    "updateRemoteUserUID": true,
-    "containerEnv": {
-        "HOME": "/home/vscode"
+    "image": "ghcr.io/astral-sh/uv:python3.13-bookworm",
+    "remoteUser": "root",
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/root/.local/bin",
+        "LC_ALL": "C"
     },
-    "postCreateCommand": "conda install --yes conda-forge::tox",
-    "postAttachCommand": "pip install --upgrade -e .[dev]",
+    "updateContentCommand": "uv sync --extra dev",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -21,7 +17,8 @@
                 "tamasfe.even-better-toml",
                 "redhat.vscode-yaml",
                 "spmeesseman.vscode-taskexplorer"
-            ]
+            ],
+            "python.defaultInterpreterPath": "./.venv/bin/python"
         }
     }
 }

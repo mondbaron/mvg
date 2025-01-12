@@ -7,35 +7,31 @@
             "label": "Run Tests (tox)",
             "group": "test",
             "type": "shell",
-            "command": "tox -p -q"
+            "command": "uv run tox -p -q"
         },
         {
             "label": "Build package (build)",
             "group": "build",
             "type": "shell",
-            "command": "python -m build"
+            "command": "uv build"
         },
         {
             "label": "Build documentation (sphinx-build)",
             "group": "build",
             "type": "shell",
-            "command": "sphinx-build",
-            "args": [
-                "docs/source/",
-                "docs/build"
-            ],
+            "command": "uv run sphinx-build docs/source/ docs/build",
         },
         {
             "label": "Deploy package (testpypi)",
             "group": "build",
             "type": "shell",
-            "command": "twine upload --config-file .pypirc -r testpypi dist/*",
+            "command": "uv publish --index testpypi",
         },
         {
             "label": "Deploy package (pypi)",
             "group": "build",
             "type": "shell",
-            "command": "twine upload --config-file .pypirc dist/*",
+            "command": "uv publish",
         }
     ]
 }

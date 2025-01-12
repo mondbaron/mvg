@@ -15,19 +15,22 @@ jobs:
     concurrency:
       group: "pages"
       cancel-in-progress: true
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-      - name: install
-        run: |
-          pip install -e .[dev]
+      - uses: actions/checkout@v4
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: install the project
+        run: uv sync --extra dev
+
       - name: build documentation
         run: |
-          sphinx-build docs/source docs/build
+          uv run sphinx-build docs/source docs/build
+
       - name: deploy documentation
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

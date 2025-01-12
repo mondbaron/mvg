@@ -24,25 +24,25 @@ class Base(Enum):
 class Endpoint(Enum):
     """MVG API endpoints with URLs and arguments."""
 
-    FIB_LOCATION: tuple[str, list[str]] = ("/locations", ["query"])
-    FIB_NEARBY: tuple[str, list[str]] = ("/stations/nearby", ["latitude", "longitude"])
-    FIB_DEPARTURE: tuple[str, list[str]] = ("/departures", ["globalId", "limit", "offsetInMinutes"])
-    ZDM_STATION_IDS: tuple[str, list[str]] = ("/mvgStationGlobalIds", [])
-    ZDM_STATIONS: tuple[str, list[str]] = ("/stations", [])
-    ZDM_LINES: tuple[str, list[str]] = ("/lines", [])
+    FIB_LOCATION = ("/locations", ["query"])
+    FIB_NEARBY = ("/stations/nearby", ["latitude", "longitude"])
+    FIB_DEPARTURE = ("/departures", ["globalId", "limit", "offsetInMinutes"])
+    ZDM_STATION_IDS = ("/mvgStationGlobalIds", ...)
+    ZDM_STATIONS = ("/stations", ...)
+    ZDM_LINES = ("/lines", ...)
 
 
 class TransportType(Enum):
     """MVG products defined by the API with name and icon."""
 
-    BAHN: tuple[str, str] = ("Bahn", "mdi:train")
-    SBAHN: tuple[str, str] = ("S-Bahn", "mdi:subway-variant")
-    UBAHN: tuple[str, str] = ("U-Bahn", "mdi:subway")
-    TRAM: tuple[str, str] = ("Tram", "mdi:tram")
-    BUS: tuple[str, str] = ("Bus", "mdi:bus")
-    REGIONAL_BUS: tuple[str, str] = ("Regionalbus", "mdi:bus")
-    SEV: tuple[str, str] = ("SEV", "mdi:taxi")
-    SCHIFF: tuple[str, str] = ("Schiff", "mdi:ferry")
+    BAHN = ("Bahn", "mdi:train")
+    SBAHN = ("S-Bahn", "mdi:subway-variant")
+    UBAHN = ("U-Bahn", "mdi:subway")
+    TRAM = ("Tram", "mdi:tram")
+    BUS = ("Bus", "mdi:bus")
+    REGIONAL_BUS = ("Regionalbus", "mdi:bus")
+    SEV = ("SEV", "mdi:taxi")
+    SCHIFF = ("Schiff", "mdi:ferry")
 
     @classmethod
     def all(cls) -> list[TransportType]:
@@ -213,8 +213,14 @@ class MvgApi:
 
         Example result::
 
-            {"id": "de:09162:6", "name": "Hauptbahnhof", "place": "München", "latitude": 48.14003, "longitude": 11.56107}
-        """  # noqa: E501
+            {
+                "id": "de:09162:6",
+                "name": "Hauptbahnhof",
+                "place": "München",
+                "latitude": 48.14003,
+                "longitude": 11.56107,
+            }
+        """
         query = query.strip()
         try:
             # return details from ZDM if query is a station id
@@ -269,8 +275,14 @@ class MvgApi:
 
         Example result::
 
-            {"id": "de:09162:6", "name": "Hauptbahnhof", "place": "München", "latitude": 48.14003, "longitude": 11.56107}
-        """  # noqa: E501
+            {
+                "id": "de:09162:6",
+                "name": "Hauptbahnhof",
+                "place": "München",
+                "latitude": 48.14003,
+                "longitude": 11.56107,
+            }
+        """
         return asyncio.run(MvgApi.station_async(query))
 
     @staticmethod

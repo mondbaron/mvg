@@ -7,14 +7,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-      - name: Install tox
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox
-      - name: Test with tox
-        run: tox
+      - uses: actions/checkout@v4
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: install the project
+        run: uv sync --extra dev
+
+      - name: run tox
+        run: uv run tox
