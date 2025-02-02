@@ -201,7 +201,7 @@ class MvgApi:
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of lines as dictionary
         """
-        return asyncio.run(MvgApi.stations_async())
+        return asyncio.run(MvgApi.lines_async())
 
     @staticmethod
     async def station_async(query: str) -> dict[str, str] | None:
