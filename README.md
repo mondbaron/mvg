@@ -121,3 +121,12 @@ async def demo() -> None:
 loop = asyncio.get_event_loop()
 loop.run_until_complete(demo())
 ```
+
+### Note about notebooks and running event loops
+
+If you call the synchronous helpers (for example `MvgApi.station()`) from an
+environment that already has an active asyncio event loop (such as Jupyter
+notebooks), Python's `asyncio.run()` would normally raise RuntimeError. This
+library detects that case and transparently submits the underlying coroutine
+to a background event loop so the synchronous convenience methods continue to
+work from notebooks and similar environments.

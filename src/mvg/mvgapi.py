@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import re
+import threading
 from enum import Enum
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Coroutine, TypeVar
 
 import aiohttp
 from furl import furl
 
 MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
+
+# Generic result type for _run
+T = TypeVar("T")
 
 
 class Base(Enum):
@@ -90,7 +94,7 @@ class MvgApi:
 
         if validate_existance:
             try:
-                result = asyncio.run(MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS))
+                result = MvgApi._run(MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS))
                 if not isinstance(result, list):
                     msg = f"Bad API call: Expected a list, but got {type(result)}."
                     raise MvgApiError(msg)
@@ -174,7 +178,7 @@ class MvgApi:
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of stations as dictionary
         """
-        return asyncio.run(MvgApi.stations_async())
+        return MvgApi._run(MvgApi.stations_async())
 
     @staticmethod
     async def lines_async() -> list[dict[str, Any]]:
@@ -201,7 +205,7 @@ class MvgApi:
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of lines as dictionary
         """
-        return asyncio.run(MvgApi.lines_async())
+        return MvgApi._run(MvgApi.lines_async())
 
     @staticmethod
     async def station_async(query: str) -> dict[str, str] | None:
@@ -283,7 +287,7 @@ class MvgApi:
                 "longitude": 11.56107,
             }
         """
-        return asyncio.run(MvgApi.station_async(query))
+        return MvgApi._run(MvgApi.station_async(query))
 
     @staticmethod
     async def nearby_async(
@@ -352,7 +356,7 @@ class MvgApi:
 
             {"id": "de:09162:70", "name": "Universität", "place": "München", "latitude": 48.15007, "longitude": 11.581}
         """
-        return asyncio.run(MvgApi.nearby_async(latitude, longitude, full_list))
+        return MvgApi._run(MvgApi.nearby_async(latitude, longitude, full_list))
 
     @staticmethod
     async def departures_async(
@@ -454,4 +458,52 @@ class MvgApi:
             ]
 
         """
-        return asyncio.run(self.departures_async(self.station_id, limit, offset, transport_types))
+        return MvgApi._run(self.departures_async(self.station_id, limit, offset, transport_types))
+
+    # Single background loop/thread used when a running loop exists in this
+    # thread (e.g. Jupyter). Created lazily on first use.
+    _bg_lock = threading.Lock()
+    _bg_loop: asyncio.AbstractEventLoop | None = None
+    _bg_thread: threading.Thread | None = None
+
+    @staticmethod
+    def _run(coro: Coroutine[Any, Any, T]) -> T:
+        """Execute a coroutine from synchronous code.
+
+        - If no event loop is running in the current thread, this uses
+          `asyncio.run(coro)` (the normal, fast path).
+        - If an event loop is already running (e.g. inside Jupyter), it
+          submits the coroutine to a single background event loop that is
+          created once and reused for subsequent calls.
+
+        The background loop approach avoids calling `asyncio.run()` from a
+        running loop which raises RuntimeError.
+        """
+        try:
+            return asyncio.run(coro)
+        except RuntimeError:
+            # Running inside an existing loop in this thread; fall back to
+            # the background loop approach.
+            if not asyncio.iscoroutine(coro):
+                msg = "_run expects a coroutine object"
+                raise TypeError(msg) from None
+
+            with MvgApi._bg_lock:
+                if MvgApi._bg_loop is None:
+                    loop = asyncio.new_event_loop()
+
+                    def _start_bg_loop() -> None:
+                        asyncio.set_event_loop(loop)
+                        loop.run_forever()
+
+                    thread = threading.Thread(target=_start_bg_loop, daemon=True)
+                    thread.start()
+                    MvgApi._bg_loop = loop
+                    MvgApi._bg_thread = thread
+
+            if MvgApi._bg_loop is None:
+                msg = "Failed to create background event loop"
+                raise RuntimeError(msg) from None
+
+            future = asyncio.run_coroutine_threadsafe(coro, MvgApi._bg_loop)
+            return future.result()

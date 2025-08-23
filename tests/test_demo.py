@@ -78,3 +78,16 @@ async def test_async() -> None:
         departures = await MvgApi.departures_async(station["id"])
         assert len(departures) > 0
         print("ASYNC: ", station, departures, end="\n\n")
+
+
+@pytest.mark.asyncio
+async def test_station_sync_in_running_loop_real_query() -> None:
+    """Call the synchronous `station()` from an active event loop.
+
+    This reproduces the Jupyter/notebook scenario where `asyncio.run` would
+    fail and verifies the library's fallback runs the query using the
+    background loop.
+    """
+    station = MvgApi.station("Universität, München")
+    assert station is not None
+    assert station["id"] == "de:09162:70"
