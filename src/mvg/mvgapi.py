@@ -81,7 +81,7 @@ class MvgApi:
         """Check if the station id is a global station ID according to VDV Recommendation 432.
 
         :param station_id: a global station id (e.g. 'de:09162:70')
-        :param validate_existance: validate the existance in a list from the API
+        :param validate_existance: validate the existence in a list from the API
         :return: True if valid, False if Invalid
         """
         valid_format = bool(re.match("de:[0-9]{2,5}:[0-9]+", station_id))
@@ -207,9 +207,9 @@ class MvgApi:
     async def station_async(query: str) -> dict[str, str] | None:
         """Find a station by station name and place or global station id.
 
-        :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
+        :param query: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
+        :return: the first matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
         Example result::
 
@@ -269,7 +269,7 @@ class MvgApi:
     def station(query: str) -> dict[str, str] | None:
         """Find a station by station name and place or global station id.
 
-        :param name: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
+        :param query: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
@@ -361,7 +361,7 @@ class MvgApi:
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
     ) -> list[dict[str, Any]]:
-        """Retreive the next departures for a station by station id.
+        """Retrieve the next departures for a station by station id.
 
         :param station_id: the global station id ('de:09162:70')
         :param limit: limit of departures, defaults to 10
@@ -389,7 +389,7 @@ class MvgApi:
         """
         station_id.strip()
         if not MvgApi.valid_station_id(station_id):
-            msg = "Invalid format of global staton id."
+            msg = "Invalid format of global station ID."
             raise ValueError(msg)
 
         try:
@@ -429,7 +429,7 @@ class MvgApi:
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
     ) -> list[dict[str, Any]]:
-        """Retreive the next departures.
+        """Retrieve the next departures.
 
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0

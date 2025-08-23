@@ -17,7 +17,7 @@ def test_basic() -> None:
 
 
 def test_faraway() -> None:
-    """Test: basic usage."""
+    """Test: usage with distant station."""
     station = MvgApi.station("Ebersberg, Ebersberg (Obb.)")
     assert station["id"] == "de:09175:4070"
     if station:
@@ -28,7 +28,7 @@ def test_faraway() -> None:
 
 
 def test_village() -> None:
-    """Test: basic usage."""
+    """Test: usage with village station."""
     station = MvgApi.station("Egmating, Schule")
     assert station["id"] == "de:09175:4212"
     if station:
