@@ -107,21 +107,16 @@ class MvgApi:
         return True
 
     @staticmethod
-    async def __api(base: Base, endpoint: Endpoint | tuple[str, list[str]], args: dict[str, Any] | None = None) -> Any:  # noqa: ANN401
-        """Call the API endpoint with the given arguments.
+    async def __get(url: furl, session: aiohttp.ClientSession) -> Any:  # noqa: ANN401
+        """Perform the real get request using a given client session.
 
-        :param base: the API base
-        :param endpoint: the endpoint
-        :param args: a dictionary containing arguments
+        :param url: the url to get
+        :param session: the client session used for the call
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the response as JSON object
+        :returns: the response as json object
         """
-        url = furl(base.value)
-        url /= endpoint.value[0] if isinstance(endpoint, Endpoint) else endpoint[0]
-        url.set(query_params=args)
-
         try:
-            async with aiohttp.ClientSession(trust_env=True) as session, session.get(
+            async with session.get(
                 url.url,
             ) as resp:
                 if resp.status != HTTPStatus.OK:
@@ -134,7 +129,33 @@ class MvgApi:
 
         except aiohttp.ClientError as exc:
             msg = f"Bad API call: Got {type(exc)!s} from {url.url}"
-            raise MvgApiError from exc
+            raise MvgApiError(msg) from exc
+
+    @staticmethod
+    async def __api(
+        base: Base,
+        endpoint: Endpoint | tuple[str, list[str]],
+        args: dict[str, Any] | None = None,
+        session: aiohttp.ClientSession | None = None,
+    ) -> Any:  # noqa: ANN401
+        """Call the API endpoint with the given arguments.
+
+        :param base: the API base
+        :param endpoint: the endpoint
+        :param args: a dictionary containing arguments
+        :param session: optional client session. If None is given, a temporary session is created
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the response as JSON object
+        """
+        url = furl(base.value)
+        url /= endpoint.value[0] if isinstance(endpoint, Endpoint) else endpoint[0]
+        url.set(query_params=args)
+
+        if session is not None:
+            return await MvgApi.__get(url, session)
+
+        async with aiohttp.ClientSession() as tmp_session:
+            return await MvgApi.__get(url, tmp_session)
 
     @staticmethod
     async def station_ids_async() -> list[str]:
@@ -364,6 +385,7 @@ class MvgApi:
         limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
+        session: aiohttp.ClientSession | None = None,
     ) -> list[dict[str, Any]]:
         """Retrieve the next departures for a station by station id.
 
@@ -371,6 +393,7 @@ class MvgApi:
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
         :param transport_types: filter by transport type, defaults to None
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :raises ValueError: raised on bad station id format
         :return: a list of departures as dictionary
@@ -402,7 +425,7 @@ class MvgApi:
             if transport_types is None:
                 transport_types = TransportType.all()
             args.update({"transportTypes": ",".join([product.name for product in transport_types])})
-            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
+            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args, session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -432,12 +455,14 @@ class MvgApi:
         limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
+        session: aiohttp.ClientSession | None = None,
     ) -> list[dict[str, Any]]:
         """Retrieve the next departures.
 
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
         :param transport_types: filter by transport type, defaults to None
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of departures as dictionary
 
@@ -458,7 +483,7 @@ class MvgApi:
             ]
 
         """
-        return MvgApi._run(self.departures_async(self.station_id, limit, offset, transport_types))
+        return MvgApi._run(self.departures_async(self.station_id, limit, offset, transport_types, session))
 
     # Single background loop/thread used when a running loop exists in this
     # thread (e.g. Jupyter). Created lazily on first use.
