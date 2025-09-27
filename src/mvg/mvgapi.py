@@ -107,21 +107,16 @@ class MvgApi:
         return True
 
     @staticmethod
-    async def __api(base: Base, endpoint: Endpoint | tuple[str, list[str]], args: dict[str, Any] | None = None) -> Any:  # noqa: ANN401
-        """Call the API endpoint with the given arguments.
+    async def __get(url: furl, session: aiohttp.ClientSession) -> Any:  # noqa: ANN401
+        """Perform the real get request using a given client session.
 
-        :param base: the API base
-        :param endpoint: the endpoint
-        :param args: a dictionary containing arguments
+        :param url: the url to get
+        :param session: the client session used for the call
         :raises MvgApiError: raised on communication failure or unexpected result
-        :return: the response as JSON object
+        :returns: the response as json object
         """
-        url = furl(base.value)
-        url /= endpoint.value[0] if isinstance(endpoint, Endpoint) else endpoint[0]
-        url.set(query_params=args)
-
         try:
-            async with aiohttp.ClientSession(trust_env=True) as session, session.get(
+            async with session.get(
                 url.url,
             ) as resp:
                 if resp.status != HTTPStatus.OK:
@@ -134,17 +129,46 @@ class MvgApi:
 
         except aiohttp.ClientError as exc:
             msg = f"Bad API call: Got {type(exc)!s} from {url.url}"
-            raise MvgApiError from exc
+            raise MvgApiError(msg) from exc
 
     @staticmethod
-    async def station_ids_async() -> list[str]:
+    async def __api(
+        base: Base,
+        endpoint: Endpoint | tuple[str, list[str]],
+        args: dict[str, Any] | None = None,
+        session: aiohttp.ClientSession | None = None,
+    ) -> Any:  # noqa: ANN401
+        """Call the API endpoint with the given arguments.
+
+        :param base: the API base
+        :param endpoint: the endpoint
+        :param args: a dictionary containing arguments
+        :param session: optional client session. If None is given, a temporary session is created
+        :raises MvgApiError: raised on communication failure or unexpected result
+        :return: the response as JSON object
+        """
+        url = furl(base.value)
+        url /= endpoint.value[0] if isinstance(endpoint, Endpoint) else endpoint[0]
+        url.set(query_params=args)
+
+        if session is not None:
+            return await MvgApi.__get(url, session)
+
+        async with aiohttp.ClientSession() as tmp_session:
+            return await MvgApi.__get(url, tmp_session)
+
+    @staticmethod
+    async def station_ids_async(
+        session: aiohttp.ClientSession | None = None,
+    ) -> list[str]:
         """Retrieve a list of all valid station ids.
 
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: station ids as a list
         """
         try:
-            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS)
+            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATION_IDS, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -154,14 +178,17 @@ class MvgApi:
             raise MvgApiError(msg) from exc
 
     @staticmethod
-    async def stations_async() -> list[dict[str, Any]]:
+    async def stations_async(
+        session: aiohttp.ClientSession | None = None,
+    ) -> list[dict[str, Any]]:
         """Retrieve a list of all stations.
 
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of stations as dictionary
         """
         try:
-            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATIONS)
+            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_STATIONS, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -181,14 +208,17 @@ class MvgApi:
         return MvgApi._run(MvgApi.stations_async())
 
     @staticmethod
-    async def lines_async() -> list[dict[str, Any]]:
+    async def lines_async(
+        session: aiohttp.ClientSession | None = None,
+    ) -> list[dict[str, Any]]:
         """Retrieve a list of all lines.
 
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of lines as dictionary
         """
         try:
-            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_LINES)
+            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_LINES, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -208,10 +238,14 @@ class MvgApi:
         return MvgApi._run(MvgApi.lines_async())
 
     @staticmethod
-    async def station_async(query: str) -> dict[str, str] | None:
+    async def station_async(
+        query: str,
+        session: aiohttp.ClientSession | None = None,
+    ) -> dict[str, str] | None:
         """Find a station by station name and place or global station id.
 
         :param query: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: the first matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
 
@@ -231,7 +265,7 @@ class MvgApi:
             if MvgApi.valid_station_id(query):
                 stations_endpoint = Endpoint.ZDM_STATIONS.value[0]
                 station_endpoint = f"{stations_endpoint}/{query}"
-                result = await MvgApi.__api(Base.ZDM, (station_endpoint, []))
+                result = await MvgApi.__api(Base.ZDM, (station_endpoint, []), session=session)
                 if not isinstance(result, dict):
                     msg = f"Bad API call: Expected a dict, but got {type(result)}."
                     raise MvgApiError(msg)
@@ -247,7 +281,7 @@ class MvgApi:
             # use open search if query is not a station id
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
             args.update({"query": query.strip(), "locationTypes": "STATION"})
-            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_LOCATION, args)
+            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_LOCATION, args, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -294,12 +328,14 @@ class MvgApi:
         latitude: float,
         longitude: float,
         full_list: bool = True,
+        session: aiohttp.ClientSession | None = None,
     ) -> dict[str, str] | list[dict[str, str]] | None:
         """Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
         :param longitude: coordinate in decimal degrees
         :param full_list: return full list of stations instead of a single location
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: the fist matching station as dictionary with keys 'id', 'name', 'place', 'latitude', 'longitude'
             or a list of such station dictionaries, if requested by `full_list` argument
@@ -311,7 +347,7 @@ class MvgApi:
         try:
             args = dict.fromkeys(Endpoint.FIB_NEARBY.value[1])
             args.update({"latitude": latitude, "longitude": longitude})
-            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_NEARBY, args)
+            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_NEARBY, args, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
@@ -364,6 +400,7 @@ class MvgApi:
         limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
+        session: aiohttp.ClientSession | None = None,
     ) -> list[dict[str, Any]]:
         """Retrieve the next departures for a station by station id.
 
@@ -371,6 +408,7 @@ class MvgApi:
         :param limit: limit of departures, defaults to 10
         :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0
         :param transport_types: filter by transport type, defaults to None
+        :param session: optional client sesion. If None is given, a temporary session is created
         :raises MvgApiError: raised on communication failure or unexpected result
         :raises ValueError: raised on bad station id format
         :return: a list of departures as dictionary
@@ -402,7 +440,7 @@ class MvgApi:
             if transport_types is None:
                 transport_types = TransportType.all()
             args.update({"transportTypes": ",".join([product.name for product in transport_types])})
-            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args)
+            result = await MvgApi.__api(Base.FIB, Endpoint.FIB_DEPARTURE, args, session=session)
             if not isinstance(result, list):
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)

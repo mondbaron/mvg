@@ -105,21 +105,28 @@ if station:
 
 ## Advanced Usage: Asynchronous Methods
 
-The class `MvgApi` internally calls asynchronous methods using `asyncio` and `aiohttp` to perform the web requests efficiently. These asynchronous methods are marked by the suffix `_async` and can be utilized by users in projects with concurrent code.
+The class `MvgApi` internally calls asynchronous methods using `asyncio` and `aiohttp` to perform web requests efficiently. These asynchronous methods are marked by the suffix `_async` and can be utilized by users in projects with concurrent code.
 
-The basic example but with asynchronous calls looks like this:
+**Session management:**
+
+- Only async methods (ending with `_async`) accept an optional `session` parameter, which must be an `aiohttp.ClientSession`.
+- Synchronous methods do not accept a session parameter and manage their own session internally.
+
+**Example: Using a shared aiohttp session for multiple async calls**
 
 ```python
 import asyncio
+import aiohttp
 from mvg import MvgApi
 
 async def demo() -> None:
-    station = await MvgApi.station_async('Universität, München')
-    if station:
-        departures = MvgApi.departures_async(station['id'])
-        print(station, await departures)
-loop = asyncio.get_event_loop()
-loop.run_until_complete(demo())
+    async with aiohttp.ClientSession() as session:
+        station = await MvgApi.station_async('Universität, München', session=session)
+        if station:
+            departures = await MvgApi.departures_async(station['id'], session=session)
+            print(station, departures)
+
+asyncio.run(demo())
 ```
 
 ### Note about notebooks and running event loops
@@ -130,3 +137,7 @@ notebooks), Python's `asyncio.run()` would normally raise RuntimeError. This
 library detects that case and transparently submits the underlying coroutine
 to a background event loop so the synchronous convenience methods continue to
 work from notebooks and similar environments.
+
+## Notable Contributions
+
+- Thanks to [jrester](https://github.com/jrester) for adding support of reusable aiohttp HTTP sessions.
