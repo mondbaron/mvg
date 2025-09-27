@@ -1,5 +1,6 @@
 """Demonstration tests (see README.md)."""
 
+import aiohttp
 import pytest
 
 from mvg import MvgApi, TransportType
@@ -78,6 +79,18 @@ async def test_async() -> None:
         departures = await MvgApi.departures_async(station["id"])
         assert len(departures) > 0
         print("ASYNC: ", station, departures, end="\n\n")
+
+
+@pytest.mark.asyncio
+async def test_test_async_with_shared_session() -> None:
+    """Test: usage with shared aiohttp session."""
+    async with aiohttp.ClientSession() as session:
+        station = await MvgApi.station_async("Universität, München", session=session)
+        assert station["id"] == "de:09162:70"
+        if station:
+            departures = await MvgApi.departures_async(station["id"], session=session)
+            assert len(departures) > 0
+            print("ASYNC: ", station, departures, end="\n\n")
 
 
 @pytest.mark.asyncio
