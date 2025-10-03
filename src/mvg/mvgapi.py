@@ -31,9 +31,9 @@ class Endpoint(Enum):
     FIB_LOCATION = ("/locations", ["query"])
     FIB_NEARBY = ("/stations/nearby", ["latitude", "longitude"])
     FIB_DEPARTURE = ("/departures", ["globalId", "limit", "offsetInMinutes"])
+    FIB_LINES = ("/lines", ...)
     ZDM_STATION_IDS = ("/mvgStationGlobalIds", ...)
     ZDM_STATIONS = ("/stations", ...)
-    ZDM_LINES = ("/lines", ...)
 
 
 class TransportType(Enum):
@@ -209,33 +209,67 @@ class MvgApi:
 
     @staticmethod
     async def lines_async(
+        station_id: str | None = None,
         session: aiohttp.ClientSession | None = None,
     ) -> list[dict[str, Any]]:
-        """Retrieve a list of all lines.
+        """Retrieve a list of all lines or the lines that service a specific station.
 
+        :param station_id: if a global station id ('de:09162:70') is given, the lines for this station are retrieved
         :param session: optional client sesion. If None is given, a temporary session is created
+        :raises ValueError: raised on bad station id format
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of lines as dictionary
+
+        Example result::
+
+            [
+                {
+                    "label": "U1",
+                    "transportType": "UBAHN",
+                    "sev": False,
+                    "divaId": "010U1",
+                },
+                ...,
+            ]
         """
-        try:
-            result = await MvgApi.__api(Base.ZDM, Endpoint.ZDM_LINES, session=session)
-            if not isinstance(result, list):
-                msg = f"Bad API call: Expected a list, but got {type(result)}."
-                raise MvgApiError(msg)
-        except (AssertionError, KeyError) as exc:
-            msg = "Bad API call: Could not parse station data."
-            raise MvgApiError(msg) from exc
+        if station_id is not None:
+            if not MvgApi.valid_station_id(station_id):
+                msg = "Invalid format of global station ID."
+                raise ValueError(msg)
+            endpoint = (f"{Endpoint.FIB_LINES.value[0]}/{station_id}", [])
         else:
-            return result
+            endpoint = Endpoint.FIB_LINES
+
+        lines = await MvgApi.__api(Base.FIB, endpoint, session=session)
+
+        if not isinstance(lines, list):
+            msg = f"Bad API call: Expected a list, but got {type(lines)}."
+            raise MvgApiError(msg)
+
+        return lines
 
     @staticmethod
-    def lines() -> list[dict[str, Any]]:
-        """Retrieve a list of all lines.
+    def lines(station_id: str | None = None) -> list[dict[str, Any]]:
+        """Retrieve a list of all lines or the lines that service a specific station.
 
+        :param station_id: if a global station id ('de:09162:70') is given, the lines for this station are retrieved
+        :raises ValueError: raised on bad station id format
         :raises MvgApiError: raised on communication failure or unexpected result
         :return: a list of lines as dictionary
+
+        Example result::
+
+            [
+                {
+                    "label": "U1",
+                    "transportType": "UBAHN",
+                    "sev": False,
+                    "divaId": "010U1",
+                },
+                ...,
+            ]
         """
-        return MvgApi._run(MvgApi.lines_async())
+        return MvgApi._run(MvgApi.lines_async(station_id))
 
     @staticmethod
     async def station_async(
