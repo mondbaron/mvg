@@ -232,13 +232,12 @@ class MvgApi:
                 ...,
             ]
         """
+        endpoint: Endpoint | tuple[str, list[str]] = Endpoint.FIB_LINES
         if station_id is not None:
             if not MvgApi.valid_station_id(station_id):
                 msg = "Invalid format of global station ID."
                 raise ValueError(msg)
             endpoint = (f"{Endpoint.FIB_LINES.value[0]}/{station_id}", [])
-        else:
-            endpoint = Endpoint.FIB_LINES
 
         lines = await MvgApi.__api(Base.FIB, endpoint, session=session)
 
