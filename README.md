@@ -94,6 +94,9 @@ if station:
 [{
 'time': 1668524580,
 'planned': 1668524460,
+'delay': 0,
+'platform': 1,
+'realtime': True,
 'line': 'U3',
 'destination': 'Fürstenried West',
 'type': 'U-Bahn',
