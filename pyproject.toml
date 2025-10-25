@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name    = "mvg"
-version = "1.5.1"
+version = "1.6.0"
 
 description = "An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG)."
 readme      = "README.md"

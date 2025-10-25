@@ -70,6 +70,24 @@ def test_filter() -> None:
         print("FILTER: ", station, departures, end="\n\n")
 
 
+def test_lines() -> None:
+    """Test: lines retrieval."""
+    lines = MvgApi.lines()
+    assert isinstance(lines, list)
+    assert len(lines) > 0
+    assert isinstance(lines[0], dict)
+    print("LINES: ", lines, end="\n\n")
+
+
+def test_lines_station() -> None:
+    """Test: lines retrieval."""
+    lines = MvgApi.lines(station_id="de:09162:70")
+    assert isinstance(lines, list)
+    assert len(lines) > 0
+    assert isinstance(lines[0], dict)
+    print("LINES: ", lines, end="\n\n")
+
+
 @pytest.mark.asyncio
 async def test_async() -> None:
     """Test: advanced usage with asynchronous methods."""
