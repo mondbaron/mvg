@@ -1,0 +1,735 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mvg.mvgapi &mdash; mvg  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            mvg
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">mvg</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">mvg.mvgapi</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for mvg.mvgapi</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Provides the class MvgApi.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">http</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPStatus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Coroutine</span><span class="p">,</span> <span class="n">TypeVar</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">aiohttp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">furl</span><span class="w"> </span><span class="kn">import</span> <span class="n">furl</span>
+
+<span class="n">MVGAPI_DEFAULT_LIMIT</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># API defaults to 10, limits to 100</span>
+
+<span class="c1"># Generic result type for _run</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Base</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MVG APIs base URLs.&quot;&quot;&quot;</span>
+
+    <span class="n">FIB</span> <span class="o">=</span> <span class="s2">&quot;https://www.mvg.de/api/bgw-pt/v3&quot;</span>
+    <span class="n">ZDM</span> <span class="o">=</span> <span class="s2">&quot;https://www.mvg.de/.rest/zdm&quot;</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Endpoint</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MVG API endpoints with URLs and arguments.&quot;&quot;&quot;</span>
+
+    <span class="n">FIB_LOCATION</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/locations&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">])</span>
+    <span class="n">FIB_NEARBY</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/stations/nearby&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">])</span>
+    <span class="n">FIB_DEPARTURE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/departures&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;globalId&quot;</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">,</span> <span class="s2">&quot;offsetInMinutes&quot;</span><span class="p">])</span>
+    <span class="n">FIB_LINES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+    <span class="n">ZDM_STATION_IDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/mvgStationGlobalIds&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+    <span class="n">ZDM_STATIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/stations&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TransportType">
+<a class="viewcode-back" href="../../index.html#mvg.TransportType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TransportType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MVG products defined by the API with name and icon.&quot;&quot;&quot;</span>
+
+    <span class="n">BAHN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Bahn&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:train&quot;</span><span class="p">)</span>
+    <span class="n">SBAHN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;S-Bahn&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:subway-variant&quot;</span><span class="p">)</span>
+    <span class="n">UBAHN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;U-Bahn&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:subway&quot;</span><span class="p">)</span>
+    <span class="n">TRAM</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Tram&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:tram&quot;</span><span class="p">)</span>
+    <span class="n">BUS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Bus&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:bus&quot;</span><span class="p">)</span>
+    <span class="n">REGIONAL_BUS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Regionalbus&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:bus&quot;</span><span class="p">)</span>
+    <span class="n">SEV</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;SEV&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:taxi&quot;</span><span class="p">)</span>
+    <span class="n">SCHIFF</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Schiff&quot;</span><span class="p">,</span> <span class="s2">&quot;mdi:ferry&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TransportType.all">
+<a class="viewcode-back" href="../../index.html#mvg.TransportType.all">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">TransportType</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of all products.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">TransportType</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">cls</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;SEV&quot;</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MvgApiError">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApiError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MvgApiError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Failed communication with MVG API.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="MvgApi">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MvgApi</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A class interface to retrieve stations, lines and departures from the MVG.</span>
+
+<span class="sd">    The implementation uses the Münchner Verkehrsgesellschaft (MVG) API at https://www.mvg.de.</span>
+<span class="sd">    It can be instanciated by station name and place or global station id.</span>
+
+<span class="sd">    :param station: global station id (e.g. &#39;de:09162:70&#39;)</span>
+<span class="sd">    :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">    :raises ValueError: raised on bad station id format</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">station</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the MVG interface.&quot;&quot;&quot;</span>
+        <span class="n">station</span> <span class="o">=</span> <span class="n">station</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_station_id</span><span class="p">(</span><span class="n">station</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Invalid station.&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">station_details</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">station</span><span class="p">(</span><span class="n">station</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">station_details</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">station_id</span> <span class="o">=</span> <span class="n">station_details</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MvgApi.valid_station_id">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.valid_station_id">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">valid_station_id</span><span class="p">(</span><span class="n">station_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">validate_existance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the station id is a global station ID according to VDV Recommendation 432.</span>
+
+<span class="sd">        :param station_id: a global station id (e.g. &#39;de:09162:70&#39;)</span>
+<span class="sd">        :param validate_existance: validate the existence in a list from the API</span>
+<span class="sd">        :return: True if valid, False if Invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid_format</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;de:[0-9]{2,5}:[0-9]+&quot;</span><span class="p">,</span> <span class="n">station_id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_format</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">validate_existance</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">ZDM</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">ZDM_STATION_IDS</span><span class="p">))</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad API call: Could not parse station data.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">station_id</span> <span class="ow">in</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__get</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="n">furl</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>  <span class="c1"># noqa: ANN401</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform the real get request using a given client session.</span>
+
+<span class="sd">        :param url: the url to get</span>
+<span class="sd">        :param session: the client session used for the call</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :returns: the response as json object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">url</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">HTTPStatus</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Got response (</span><span class="si">{</span><span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="si">}</span><span class="s2">) from </span><span class="si">{</span><span class="n">url</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">content_type</span> <span class="o">!=</span> <span class="s2">&quot;application/json&quot;</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Got content type </span><span class="si">{</span><span class="n">resp</span><span class="o">.</span><span class="n">content_type</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">url</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">return</span> <span class="k">await</span> <span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+
+        <span class="k">except</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="si">!s}</span><span class="s2"> from </span><span class="si">{</span><span class="n">url</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__api</span><span class="p">(</span>
+        <span class="n">base</span><span class="p">:</span> <span class="n">Base</span><span class="p">,</span>
+        <span class="n">endpoint</span><span class="p">:</span> <span class="n">Endpoint</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>  <span class="c1"># noqa: ANN401</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call the API endpoint with the given arguments.</span>
+
+<span class="sd">        :param base: the API base</span>
+<span class="sd">        :param endpoint: the endpoint</span>
+<span class="sd">        :param args: a dictionary containing arguments</span>
+<span class="sd">        :param session: optional client session. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: the response as JSON object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">furl</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">/=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">Endpoint</span><span class="p">)</span> <span class="k">else</span> <span class="n">endpoint</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">url</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">query_params</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+
+        <span class="k">async</span> <span class="k">with</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_session</span><span class="p">:</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">tmp_session</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MvgApi.station_ids_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.station_ids_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">station_ids_async</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a list of all valid station ids.</span>
+
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: station ids as a list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">ZDM</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">ZDM_STATION_IDS</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad API call: Could not parse station data.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.stations_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.stations_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stations_async</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a list of all stations.</span>
+
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: a list of stations as dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">ZDM</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">ZDM_STATIONS</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad API call: Could not parse station data.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.stations">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.stations">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stations</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a list of all stations.</span>
+
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: a list of stations as dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">MvgApi</span><span class="o">.</span><span class="n">stations_async</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.lines_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.lines_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">lines_async</span><span class="p">(</span>
+        <span class="n">station_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a list of all lines or the lines that service a specific station.</span>
+
+<span class="sd">        :param station_id: if a global station id (&#39;de:09162:70&#39;) is given, the lines for this station are retrieved</span>
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises ValueError: raised on bad station id format</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: a list of lines as dictionary</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;label&quot;: &quot;U1&quot;,</span>
+<span class="sd">                    &quot;transportType&quot;: &quot;UBAHN&quot;,</span>
+<span class="sd">                    &quot;sev&quot;: False,</span>
+<span class="sd">                    &quot;divaId&quot;: &quot;010U1&quot;,</span>
+<span class="sd">                },</span>
+<span class="sd">                ...,</span>
+<span class="sd">            ]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span><span class="p">:</span> <span class="n">Endpoint</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_LINES</span>
+        <span class="k">if</span> <span class="n">station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">valid_station_id</span><span class="p">(</span><span class="n">station_id</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Invalid format of global station ID.&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_LINES</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">station_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">FIB</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">lines</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.lines">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.lines">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lines</span><span class="p">(</span><span class="n">station_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve a list of all lines or the lines that service a specific station.</span>
+
+<span class="sd">        :param station_id: if a global station id (&#39;de:09162:70&#39;) is given, the lines for this station are retrieved</span>
+<span class="sd">        :raises ValueError: raised on bad station id format</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: a list of lines as dictionary</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;label&quot;: &quot;U1&quot;,</span>
+<span class="sd">                    &quot;transportType&quot;: &quot;UBAHN&quot;,</span>
+<span class="sd">                    &quot;sev&quot;: False,</span>
+<span class="sd">                    &quot;divaId&quot;: &quot;010U1&quot;,</span>
+<span class="sd">                },</span>
+<span class="sd">                ...,</span>
+<span class="sd">            ]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">MvgApi</span><span class="o">.</span><span class="n">lines_async</span><span class="p">(</span><span class="n">station_id</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.station_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.station_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">station_async</span><span class="p">(</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find a station by station name and place or global station id.</span>
+
+<span class="sd">        :param query: name, place (&#39;Universität, München&#39;) or global station id (e.g. &#39;de:09162:70&#39;)</span>
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: the first matching station as dictionary with keys &#39;id&#39;, &#39;name&#39;, &#39;place&#39;, &#39;latitude&#39;, &#39;longitude&#39;</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;id&quot;: &quot;de:09162:6&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Hauptbahnhof&quot;,</span>
+<span class="sd">                &quot;place&quot;: &quot;München&quot;,</span>
+<span class="sd">                &quot;latitude&quot;: 48.14003,</span>
+<span class="sd">                &quot;longitude&quot;: 11.56107,</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># return details from ZDM if query is a station id</span>
+            <span class="k">if</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">valid_station_id</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+                <span class="n">stations_endpoint</span> <span class="o">=</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">ZDM_STATIONS</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">station_endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stations_endpoint</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">ZDM</span><span class="p">,</span> <span class="p">(</span><span class="n">station_endpoint</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a dict, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;place&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+                <span class="p">}</span>
+
+            <span class="c1"># use open search if query is not a station id</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_LOCATION</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="n">query</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s2">&quot;locationTypes&quot;</span><span class="p">:</span> <span class="s2">&quot;STATION&quot;</span><span class="p">})</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">FIB</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_LOCATION</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="c1"># return first location if lis is not empty</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;globalId&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;place&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;latitude&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+                <span class="p">}</span>
+
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad API call: Could not parse station data.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># return None if no station was found</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.station">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.station">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">station</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find a station by station name and place or global station id.</span>
+
+<span class="sd">        :param query: name, place (&#39;Universität, München&#39;) or global station id (e.g. &#39;de:09162:70&#39;)</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: the fist matching station as dictionary with keys &#39;id&#39;, &#39;name&#39;, &#39;place&#39;, &#39;latitude&#39;, &#39;longitude&#39;</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;id&quot;: &quot;de:09162:6&quot;,</span>
+<span class="sd">                &quot;name&quot;: &quot;Hauptbahnhof&quot;,</span>
+<span class="sd">                &quot;place&quot;: &quot;München&quot;,</span>
+<span class="sd">                &quot;latitude&quot;: 48.14003,</span>
+<span class="sd">                &quot;longitude&quot;: 11.56107,</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">MvgApi</span><span class="o">.</span><span class="n">station_async</span><span class="p">(</span><span class="n">query</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.nearby_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.nearby_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">nearby_async</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">full_list</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the nearest station by coordinates.</span>
+
+<span class="sd">        :param latitude: coordinate in decimal degrees</span>
+<span class="sd">        :param longitude: coordinate in decimal degrees</span>
+<span class="sd">        :param full_list: return full list of stations instead of a single location</span>
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: the fist matching station as dictionary with keys &#39;id&#39;, &#39;name&#39;, &#39;place&#39;, &#39;latitude&#39;, &#39;longitude&#39;</span>
+<span class="sd">            or a list of such station dictionaries, if requested by `full_list` argument</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            {&quot;id&quot;: &quot;de:09162:70&quot;, &quot;name&quot;: &quot;Universität&quot;, &quot;place&quot;: &quot;München&quot;, &quot;latitude&quot;: 48.15007, &quot;longitude&quot;: 11.581}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_NEARBY</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">latitude</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">longitude</span><span class="p">})</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">FIB</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_NEARBY</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">locations</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">[</span><span class="s2">&quot;globalId&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">[</span><span class="s2">&quot;place&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">location</span><span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+                    <span class="p">}</span>
+                    <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">result</span>
+                <span class="p">]</span>
+                <span class="c1"># return full list or only nearest location</span>
+                <span class="k">return</span> <span class="n">locations</span> <span class="k">if</span> <span class="n">full_list</span> <span class="k">else</span> <span class="n">locations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad API call: Could not parse station data.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># return None if no station was found</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.nearby">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.nearby">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nearby</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">full_list</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the nearest station by coordinates.</span>
+
+<span class="sd">        :param latitude: coordinate in decimal degrees</span>
+<span class="sd">        :param longitude: coordinate in decimal degrees</span>
+<span class="sd">        :param full_list: return full list of stations instead of a single location</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: the fist matching station as dictionary with keys &#39;id&#39;, &#39;name&#39;, &#39;place&#39;, &#39;latitude&#39;, &#39;longitude&#39;</span>
+<span class="sd">            or a list of such station dictionaries, if requested by `full_list` argument</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            {&quot;id&quot;: &quot;de:09162:70&quot;, &quot;name&quot;: &quot;Universität&quot;, &quot;place&quot;: &quot;München&quot;, &quot;latitude&quot;: 48.15007, &quot;longitude&quot;: 11.581}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">MvgApi</span><span class="o">.</span><span class="n">nearby_async</span><span class="p">(</span><span class="n">latitude</span><span class="p">,</span> <span class="n">longitude</span><span class="p">,</span> <span class="n">full_list</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.departures_async">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.departures_async">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">departures_async</span><span class="p">(</span>
+        <span class="n">station_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MVGAPI_DEFAULT_LIMIT</span><span class="p">,</span>
+        <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">transport_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TransportType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the next departures for a station by station id.</span>
+
+<span class="sd">        :param station_id: the global station id (&#39;de:09162:70&#39;)</span>
+<span class="sd">        :param limit: limit of departures, defaults to 10</span>
+<span class="sd">        :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0</span>
+<span class="sd">        :param transport_types: filter by transport type, defaults to None</span>
+<span class="sd">        :param session: optional client sesion. If None is given, a temporary session is created</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :raises ValueError: raised on bad station id format</span>
+<span class="sd">        :return: a list of departures as dictionary</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;time&quot;: 1668524580,</span>
+<span class="sd">                    &quot;planned&quot;: 1668524460,</span>
+<span class="sd">                    &quot;delay&quot;: 0,</span>
+<span class="sd">                    &quot;platform&quot;: 1,</span>
+<span class="sd">                    &quot;realtime&quot;: True,</span>
+<span class="sd">                    &quot;line&quot;: &quot;U3&quot;,</span>
+<span class="sd">                    &quot;destination&quot;: &quot;Fürstenried West&quot;,</span>
+<span class="sd">                    &quot;type&quot;: &quot;U-Bahn&quot;,</span>
+<span class="sd">                    &quot;icon&quot;: &quot;mdi:subway&quot;,</span>
+<span class="sd">                    &quot;cancelled&quot;: False,</span>
+<span class="sd">                    &quot;messages&quot;: [],</span>
+<span class="sd">                },</span>
+<span class="sd">                ...,</span>
+<span class="sd">            ]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">station_id</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">valid_station_id</span><span class="p">(</span><span class="n">station_id</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Invalid format of global station ID.&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_DEPARTURE</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;globalId&quot;</span><span class="p">:</span> <span class="n">station_id</span><span class="p">,</span> <span class="s2">&quot;offsetInMinutes&quot;</span><span class="p">:</span> <span class="n">offset</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="n">limit</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">transport_types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">transport_types</span> <span class="o">=</span> <span class="n">TransportType</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;transportTypes&quot;</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">product</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">transport_types</span><span class="p">])})</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">__api</span><span class="p">(</span><span class="n">Base</span><span class="o">.</span><span class="n">FIB</span><span class="p">,</span> <span class="n">Endpoint</span><span class="o">.</span><span class="n">FIB_DEPARTURE</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bad API call: Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="n">departures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">departure</span><span class="p">[</span><span class="s2">&quot;realtimeDepartureTime&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">),</span>
+                    <span class="s2">&quot;planned&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">departure</span><span class="p">[</span><span class="s2">&quot;plannedDepartureTime&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">),</span>
+                    <span class="s2">&quot;delay&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delayInMinutes&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;platform&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;platform&quot;</span><span class="p">),</span>
+                    <span class="s2">&quot;realtime&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="p">[</span><span class="s2">&quot;realtime&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;line&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;destination&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="p">[</span><span class="s2">&quot;destination&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">TransportType</span><span class="p">[</span><span class="n">departure</span><span class="p">[</span><span class="s2">&quot;transportType&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="n">TransportType</span><span class="p">[</span><span class="n">departure</span><span class="p">[</span><span class="s2">&quot;transportType&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="s2">&quot;cancelled&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="p">[</span><span class="s2">&quot;cancelled&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">departure</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">],</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">departure</span> <span class="ow">in</span> <span class="n">result</span>
+            <span class="p">]</span>
+
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Bad MVG API call: Invalid departure data.&quot;</span>
+            <span class="k">raise</span> <span class="n">MvgApiError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">departures</span></div>
+
+
+<div class="viewcode-block" id="MvgApi.departures">
+<a class="viewcode-back" href="../../index.html#mvg.MvgApi.departures">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">departures</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MVGAPI_DEFAULT_LIMIT</span><span class="p">,</span>
+        <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">transport_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TransportType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the next departures.</span>
+
+<span class="sd">        :param limit: limit of departures, defaults to 10</span>
+<span class="sd">        :param offset: offset (e.g. walking distance to the station) in minutes, defaults to 0</span>
+<span class="sd">        :param transport_types: filter by transport type, defaults to None</span>
+<span class="sd">        :raises MvgApiError: raised on communication failure or unexpected result</span>
+<span class="sd">        :return: a list of departures as dictionary</span>
+
+<span class="sd">        Example result::</span>
+
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;time&quot;: 1668524580,</span>
+<span class="sd">                    &quot;planned&quot;: 1668524460,</span>
+<span class="sd">                    &quot;delay&quot;: 0,</span>
+<span class="sd">                    &quot;platform&quot;: 1,</span>
+<span class="sd">                    &quot;realtime&quot;: True,</span>
+<span class="sd">                    &quot;line&quot;: &quot;U3&quot;,</span>
+<span class="sd">                    &quot;destination&quot;: &quot;Fürstenried West&quot;,</span>
+<span class="sd">                    &quot;type&quot;: &quot;U-Bahn&quot;,</span>
+<span class="sd">                    &quot;icon&quot;: &quot;mdi:subway&quot;,</span>
+<span class="sd">                    &quot;cancelled&quot;: False,</span>
+<span class="sd">                    &quot;messages&quot;: [],</span>
+<span class="sd">                },</span>
+<span class="sd">                ...,</span>
+<span class="sd">            ]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">departures_async</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">station_id</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">transport_types</span><span class="p">))</span></div>
+
+
+    <span class="c1"># Single background loop/thread used when a running loop exists in this</span>
+    <span class="c1"># thread (e.g. Jupyter). Created lazily on first use.</span>
+    <span class="n">_bg_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+    <span class="n">_bg_loop</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_bg_thread</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="n">coro</span><span class="p">:</span> <span class="n">Coroutine</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a coroutine from synchronous code.</span>
+
+<span class="sd">        - If no event loop is running in the current thread, this uses</span>
+<span class="sd">          `asyncio.run(coro)` (the normal, fast path).</span>
+<span class="sd">        - If an event loop is already running (e.g. inside Jupyter), it</span>
+<span class="sd">          submits the coroutine to a single background event loop that is</span>
+<span class="sd">          created once and reused for subsequent calls.</span>
+
+<span class="sd">        The background loop approach avoids calling `asyncio.run()` from a</span>
+<span class="sd">        running loop which raises RuntimeError.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">coro</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+            <span class="c1"># Running inside an existing loop in this thread; fall back to</span>
+            <span class="c1"># the background loop approach.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">coro</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;_run expects a coroutine object&quot;</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+            <span class="k">with</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_lock</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">new_event_loop</span><span class="p">()</span>
+
+                    <span class="k">def</span><span class="w"> </span><span class="nf">_start_bg_loop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">asyncio</span><span class="o">.</span><span class="n">set_event_loop</span><span class="p">(</span><span class="n">loop</span><span class="p">)</span>
+                        <span class="n">loop</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
+
+                    <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_start_bg_loop</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                    <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_loop</span> <span class="o">=</span> <span class="n">loop</span>
+                    <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_thread</span> <span class="o">=</span> <span class="n">thread</span>
+
+            <span class="k">if</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Failed to create background event loop&quot;</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+            <span class="n">future</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="n">coro</span><span class="p">,</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">_bg_loop</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Martin Dziura.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

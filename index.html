@@ -1,0 +1,706 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mvg &mdash; mvg  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            mvg
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">mvg</a><ul>
+<li><a class="reference internal" href="#disclaimer">Disclaimer</a></li>
+<li><a class="reference internal" href="#why-another-mvg-package">Why another MVG package?</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a><ul>
+<li><a class="reference internal" href="#available-stations-and-lines">Available Stations and Lines</a></li>
+<li><a class="reference internal" href="#filters">Filters</a></li>
+<li><a class="reference internal" href="#example-results">Example results</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#advanced-usage-asynchronous-methods">Advanced Usage: Asynchronous Methods</a><ul>
+<li><a class="reference internal" href="#note-about-notebooks-and-running-event-loops">Note about notebooks and running event loops</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#notable-contributions">Notable Contributions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-mvg">Module Reference</a><ul>
+<li><a class="reference internal" href="#mvg.MvgApi"><code class="docutils literal notranslate"><span class="pre">MvgApi</span></code></a><ul>
+<li><a class="reference internal" href="#mvg.MvgApi.departures"><code class="docutils literal notranslate"><span class="pre">MvgApi.departures()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.departures_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.departures_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.lines"><code class="docutils literal notranslate"><span class="pre">MvgApi.lines()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.lines_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.lines_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.nearby"><code class="docutils literal notranslate"><span class="pre">MvgApi.nearby()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.nearby_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.nearby_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.station"><code class="docutils literal notranslate"><span class="pre">MvgApi.station()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.station_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.station_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.station_ids_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.station_ids_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.stations"><code class="docutils literal notranslate"><span class="pre">MvgApi.stations()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.stations_async"><code class="docutils literal notranslate"><span class="pre">MvgApi.stations_async()</span></code></a></li>
+<li><a class="reference internal" href="#mvg.MvgApi.valid_station_id"><code class="docutils literal notranslate"><span class="pre">MvgApi.valid_station_id()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mvg.MvgApiError"><code class="docutils literal notranslate"><span class="pre">MvgApiError</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType"><code class="docutils literal notranslate"><span class="pre">TransportType</span></code></a><ul>
+<li><a class="reference internal" href="#mvg.TransportType.BAHN"><code class="docutils literal notranslate"><span class="pre">TransportType.BAHN</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.BUS"><code class="docutils literal notranslate"><span class="pre">TransportType.BUS</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.REGIONAL_BUS"><code class="docutils literal notranslate"><span class="pre">TransportType.REGIONAL_BUS</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.SBAHN"><code class="docutils literal notranslate"><span class="pre">TransportType.SBAHN</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.SCHIFF"><code class="docutils literal notranslate"><span class="pre">TransportType.SCHIFF</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.SEV"><code class="docutils literal notranslate"><span class="pre">TransportType.SEV</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.TRAM"><code class="docutils literal notranslate"><span class="pre">TransportType.TRAM</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.UBAHN"><code class="docutils literal notranslate"><span class="pre">TransportType.UBAHN</span></code></a></li>
+<li><a class="reference internal" href="#mvg.TransportType.all"><code class="docutils literal notranslate"><span class="pre">TransportType.all()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">mvg</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">mvg</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mvg">
+<h1>mvg<a class="headerlink" href="#mvg" title="Link to this heading"></a></h1>
+<p>This package aims to provide a clean, performant and barrier-free interface to timetable information of the <em>Münchner Verkehrsgesellschaft</em> (MVG), responsible for public transport in Munich. It exports the class <code class="docutils literal notranslate"><span class="pre">MvgApi</span></code> to retrieve stations, lines and departures from the unofficial JSON API at <a class="reference external" href="https://www.mvg.de">https://www.mvg.de</a>.</p>
+<section id="disclaimer">
+<h2>Disclaimer<a class="headerlink" href="#disclaimer" title="Link to this heading"></a></h2>
+<p>This project is <strong>not an official project from the Münchner Verkehrsgesellschaft (MVG)</strong>. It was developed as a private project from lack of a documented and openly accessible API. It simply reproduces the requests made by <a class="reference external" href="https://www.mvg.de">https://www.mvg.de</a> to provide a barrier-free access to local timetable information.</p>
+<p>Therefore, the following <strong>usage restrictions from the MVG Imprint do apply to all users of this package</strong>:</p>
+<blockquote>
+<div><p>Our systems are used for direct customer interaction. The processing of our content or data by third parties requires our express consent. For <strong>private, non-commercial purposes, moderate use is tolerated</strong> without our explicit consent. Any form of <strong>data mining does not constitute moderate use</strong>. We reserve the right to revoke this permission in principle or in individual cases. Please direct any questions to: <a class="reference external" href="mailto:redaktion&#37;&#52;&#48;mvg&#46;de">redaktion<span>&#64;</span>mvg<span>&#46;</span>de</a></p>
+<p>(from <a class="reference external" href="https://www.mvg.de/impressum.html">https://www.mvg.de/impressum.html</a>, accessed on 04. Feb 2023)</p>
+</div></blockquote>
+</section>
+<section id="why-another-mvg-package">
+<h2>Why another MVG package?<a class="headerlink" href="#why-another-mvg-package" title="Link to this heading"></a></h2>
+<p>The project was inspired by two existing packages:</p>
+<ul class="simple">
+<li><p>The package <a class="reference external" href="https://pypi.org/project/PyMVGLive">PyMVGLive</a> from 2017 does provide an interface to the former MVGLive API at <code class="docutils literal notranslate"><span class="pre">mvg-live.de</span></code>. As of 2022 the MVGLive website does not exist anymore and the package has been archived. Although the old API still works for some stations, it does not for others - mainly due to updated station identifiers. Therefore, the package is considered deprecated and cannot be used for new designs.</p></li>
+<li><p>The newer package <a class="reference external" href="https://pypi.org/project/mvg-api">mvg-api</a> offers an implementation from 2020 based on the API at <code class="docutils literal notranslate"><span class="pre">www.mvg.de/api/fahrinfo</span></code>, which went offline in 2024. It considered the updated station identifiers and provided the basis for other projects such as <a class="reference external" href="https://pypi.org/project/mvg-cli">mvg-cli</a>.</p></li>
+</ul>
+<p>So why another MVG API package? In the end three reasons were decisive:</p>
+<ul class="simple">
+<li><p>The recent website at uses a new API at <code class="docutils literal notranslate"><span class="pre">www.mvg.de/api/bgw-pt/v3</span></code>, which seems to be more performant than the previous one.</p></li>
+<li><p>None of the existing packages offer asynchronous calls for concurrent code projects.</p></li>
+<li><p>An optimized package was required to develop a <a class="reference external" href="https://www.home-assistant.io">Home Assistant</a> integration.</p></li>
+</ul>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Install from the Python Package Index (PyPI) using <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">mvg</span>
+</pre></div>
+</div>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
+<p>The interface was designed to be simple and intuitive. Basic usage follows these steps:</p>
+<ul class="simple">
+<li><p>Find a station using <code class="docutils literal notranslate"><span class="pre">MvgApi.station(station)</span></code> by its name and place (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;Universität,</span> <span class="pre">München&quot;</span></code>) or its global station identifier (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;de:09162:70&quot;</span></code>).</p></li>
+<li><p>Alternatively, <code class="docutils literal notranslate"><span class="pre">MvgApi.nearby(latitude,</span> <span class="pre">longitude)</span></code> finds the nearest station.</p></li>
+<li><p>Create an API instance using <code class="docutils literal notranslate"><span class="pre">MvgApi(station)</span></code> by its global identifier.</p></li>
+<li><p>Use the method <code class="docutils literal notranslate"><span class="pre">.departures()</span></code> to retrieve information from the API.</p></li>
+</ul>
+<p>A basic example looks like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mvg</span><span class="w"> </span><span class="kn">import</span> <span class="n">MvgApi</span>
+
+<span class="n">station</span> <span class="o">=</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">station</span><span class="p">(</span><span class="s1">&#39;Universität, München&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">station</span><span class="p">:</span>
+    <span class="n">mvgapi</span> <span class="o">=</span> <span class="n">MvgApi</span><span class="p">(</span><span class="n">station</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+    <span class="n">departures</span> <span class="o">=</span> <span class="n">mvgapi</span><span class="o">.</span><span class="n">departures</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">departures</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="available-stations-and-lines">
+<h3>Available Stations and Lines<a class="headerlink" href="#available-stations-and-lines" title="Link to this heading"></a></h3>
+<p>The static methods <code class="docutils literal notranslate"><span class="pre">MvgApi.stations()</span></code> and <code class="docutils literal notranslate"><span class="pre">MvgApi.lines()</span></code> expose a list of all available stations and a list of all available lines from designated API endpoints. While these calls are great for reference, they are also quite extensive and should not be used within a frequent query loop.</p>
+</section>
+<section id="filters">
+<h3>Filters<a class="headerlink" href="#filters" title="Link to this heading"></a></h3>
+<p>The results from <code class="docutils literal notranslate"><span class="pre">.departures(limit,</span> <span class="pre">offset,</span> <span class="pre">transport_types)</span></code> can be filtered using the following arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">limit</span></code> limits the output to the given number of departures, defaults to 10</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offset</span></code> adds an offset (e.g. walking distance to the station) in minutes, defaults to 0</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">transport_types</span></code> filters the result by a list of transport types (e.g. <code class="docutils literal notranslate"><span class="pre">[TransportType.UBAHN]</span></code>)</p></li>
+</ul>
+<p>A filtered example looks like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mvg</span><span class="w"> </span><span class="kn">import</span> <span class="n">MvgApi</span><span class="p">,</span> <span class="n">TransportType</span>
+
+<span class="n">station</span> <span class="o">=</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">station</span><span class="p">(</span><span class="s1">&#39;Universität, München&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">station</span><span class="p">:</span>
+    <span class="n">mvgapi</span> <span class="o">=</span> <span class="n">MvgApi</span><span class="p">(</span><span class="n">station</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+    <span class="n">departures</span> <span class="o">=</span> <span class="n">mvgapi</span><span class="o">.</span><span class="n">departures</span><span class="p">(</span>
+        <span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">offset</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">transport_types</span><span class="o">=</span><span class="p">[</span><span class="n">TransportType</span><span class="o">.</span><span class="n">UBAHN</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">departures</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="example-results">
+<h3>Example results<a class="headerlink" href="#example-results" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">station()</span></code> or <code class="docutils literal notranslate"><span class="pre">nearby()</span></code> results a <code class="docutils literal notranslate"><span class="pre">dict</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;de:09162:70&#39;</span><span class="p">,</span>
+<span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Universität&#39;</span><span class="p">,</span>
+<span class="s1">&#39;place&#39;</span><span class="p">:</span> <span class="s1">&#39;München&#39;</span>
+<span class="s1">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">48.15007</span><span class="p">,</span>
+<span class="s1">&#39;longitude&#39;</span><span class="p">:</span> <span class="mf">11.581</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">departures()</span></code> results a <code class="docutils literal notranslate"><span class="pre">list</span></code> of <code class="docutils literal notranslate"><span class="pre">dict</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span>
+<span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="mi">1668524580</span><span class="p">,</span>
+<span class="s1">&#39;planned&#39;</span><span class="p">:</span> <span class="mi">1668524460</span><span class="p">,</span>
+<span class="s1">&#39;delay&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="s1">&#39;platform&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="s1">&#39;realtime&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="s1">&#39;line&#39;</span><span class="p">:</span> <span class="s1">&#39;U3&#39;</span><span class="p">,</span>
+<span class="s1">&#39;destination&#39;</span><span class="p">:</span> <span class="s1">&#39;Fürstenried West&#39;</span><span class="p">,</span>
+<span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;U-Bahn&#39;</span><span class="p">,</span>
+<span class="s1">&#39;icon&#39;</span><span class="p">:</span> <span class="s1">&#39;mdi:subway&#39;</span><span class="p">,</span>
+<span class="s1">&#39;cancelled&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+<span class="s1">&#39;messages&#39;</span><span class="p">:</span> <span class="p">[]</span>
+<span class="p">},</span> <span class="o">...</span> <span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="advanced-usage-asynchronous-methods">
+<h2>Advanced Usage: Asynchronous Methods<a class="headerlink" href="#advanced-usage-asynchronous-methods" title="Link to this heading"></a></h2>
+<p>The class <code class="docutils literal notranslate"><span class="pre">MvgApi</span></code> internally calls asynchronous methods using <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> and <code class="docutils literal notranslate"><span class="pre">aiohttp</span></code> to perform web requests efficiently. These asynchronous methods are marked by the suffix <code class="docutils literal notranslate"><span class="pre">_async</span></code> and can be utilized by users in projects with concurrent code.</p>
+<p><strong>Session management:</strong></p>
+<ul class="simple">
+<li><p>Only async methods (ending with <code class="docutils literal notranslate"><span class="pre">_async</span></code>) accept an optional <code class="docutils literal notranslate"><span class="pre">session</span></code> parameter, which must be an <code class="docutils literal notranslate"><span class="pre">aiohttp.ClientSession</span></code>.</p></li>
+<li><p>Synchronous methods do not accept a session parameter and manage their own session internally.</p></li>
+</ul>
+<p><strong>Example: Using a shared aiohttp session for multiple async calls</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">aiohttp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mvg</span><span class="w"> </span><span class="kn">import</span> <span class="n">MvgApi</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">demo</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+        <span class="n">station</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">station_async</span><span class="p">(</span><span class="s1">&#39;Universität, München&#39;</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">station</span><span class="p">:</span>
+            <span class="n">departures</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MvgApi</span><span class="o">.</span><span class="n">departures_async</span><span class="p">(</span><span class="n">station</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">station</span><span class="p">,</span> <span class="n">departures</span><span class="p">)</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">demo</span><span class="p">())</span>
+</pre></div>
+</div>
+<section id="note-about-notebooks-and-running-event-loops">
+<h3>Note about notebooks and running event loops<a class="headerlink" href="#note-about-notebooks-and-running-event-loops" title="Link to this heading"></a></h3>
+<p>If you call the synchronous helpers (for example <code class="docutils literal notranslate"><span class="pre">MvgApi.station()</span></code>) from an
+environment that already has an active asyncio event loop (such as Jupyter
+notebooks), Python’s <code class="docutils literal notranslate"><span class="pre">asyncio.run()</span></code> would normally raise RuntimeError. This
+library detects that case and transparently submits the underlying coroutine
+to a background event loop so the synchronous convenience methods continue to
+work from notebooks and similar environments.</p>
+</section>
+</section>
+<section id="notable-contributions">
+<h2>Notable Contributions<a class="headerlink" href="#notable-contributions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Thanks to <a class="reference external" href="https://github.com/jrester">jrester</a> for adding support of reusable aiohttp HTTP sessions.</p></li>
+<li><p>Thanks to <a class="reference external" href="https://github.com/jrester">jrester</a> for adding additional information to departures.</p></li>
+<li><p>Thanks to <a class="reference external" href="https://github.com/jrester">jrester</a> for improving lines endpoint.</p></li>
+</ul>
+</section>
+</section>
+<section id="module-mvg">
+<span id="module-reference"></span><h1>Module Reference<a class="headerlink" href="#module-mvg" title="Link to this heading"></a></h1>
+<p>An unofficial interface to timetable information of the Münchner Verkehrsgesellschaft (MVG).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mvg.MvgApi">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mvg.</span></span><span class="sig-name descname"><span class="pre">MvgApi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi" title="Link to this definition"></a></dt>
+<dd><p>A class interface to retrieve stations, lines and departures from the MVG.</p>
+<p>The implementation uses the Münchner Verkehrsgesellschaft (MVG) API at <a class="reference external" href="https://www.mvg.de">https://www.mvg.de</a>.
+It can be instanciated by station name and place or global station id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>station</strong> – global station id (e.g. ‘de:09162:70’)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p></li>
+<li><p><strong>ValueError</strong> – raised on bad station id format</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.departures">
+<span class="sig-name descname"><span class="pre">departures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transport_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#mvg.TransportType" title="mvg.mvgapi.TransportType"><span class="pre">TransportType</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.departures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.departures" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the next departures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>limit</strong> – limit of departures, defaults to 10</p></li>
+<li><p><strong>offset</strong> – offset (e.g. walking distance to the station) in minutes, defaults to 0</p></li>
+<li><p><strong>transport_types</strong> – filter by transport type, defaults to None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a list of departures as dictionary</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="mi">1668524580</span><span class="p">,</span>
+        <span class="s2">&quot;planned&quot;</span><span class="p">:</span> <span class="mi">1668524460</span><span class="p">,</span>
+        <span class="s2">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;platform&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;realtime&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;line&quot;</span><span class="p">:</span> <span class="s2">&quot;U3&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;Fürstenried West&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;U-Bahn&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;mdi:subway&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cancelled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="o">...</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.departures_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">departures_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transport_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#mvg.TransportType" title="mvg.mvgapi.TransportType"><span class="pre">TransportType</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.departures_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.departures_async" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the next departures for a station by station id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station_id</strong> – the global station id (‘de:09162:70’)</p></li>
+<li><p><strong>limit</strong> – limit of departures, defaults to 10</p></li>
+<li><p><strong>offset</strong> – offset (e.g. walking distance to the station) in minutes, defaults to 0</p></li>
+<li><p><strong>transport_types</strong> – filter by transport type, defaults to None</p></li>
+<li><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p></li>
+<li><p><strong>ValueError</strong> – raised on bad station id format</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a list of departures as dictionary</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="mi">1668524580</span><span class="p">,</span>
+        <span class="s2">&quot;planned&quot;</span><span class="p">:</span> <span class="mi">1668524460</span><span class="p">,</span>
+        <span class="s2">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;platform&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;realtime&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;line&quot;</span><span class="p">:</span> <span class="s2">&quot;U3&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;destination&quot;</span><span class="p">:</span> <span class="s2">&quot;Fürstenried West&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;U-Bahn&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;icon&quot;</span><span class="p">:</span> <span class="s2">&quot;mdi:subway&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cancelled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">},</span>
+    <span class="o">...</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.lines">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.lines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.lines" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a list of all lines or the lines that service a specific station.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>station_id</strong> – if a global station id (‘de:09162:70’) is given, the lines for this station are retrieved</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – raised on bad station id format</p></li>
+<li><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a list of lines as dictionary</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;U1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transportType&quot;</span><span class="p">:</span> <span class="s2">&quot;UBAHN&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sev&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;divaId&quot;</span><span class="p">:</span> <span class="s2">&quot;010U1&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="o">...</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.lines_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lines_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.lines_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.lines_async" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a list of all lines or the lines that service a specific station.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station_id</strong> – if a global station id (‘de:09162:70’) is given, the lines for this station are retrieved</p></li>
+<li><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – raised on bad station id format</p></li>
+<li><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a list of lines as dictionary</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;U1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transportType&quot;</span><span class="p">:</span> <span class="s2">&quot;UBAHN&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sev&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;divaId&quot;</span><span class="p">:</span> <span class="s2">&quot;010U1&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="o">...</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.nearby">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nearby</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.nearby"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.nearby" title="Link to this definition"></a></dt>
+<dd><p>Find the nearest station by coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>latitude</strong> – coordinate in decimal degrees</p></li>
+<li><p><strong>longitude</strong> – coordinate in decimal degrees</p></li>
+<li><p><strong>full_list</strong> – return full list of stations instead of a single location</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the fist matching station as dictionary with keys ‘id’, ‘name’, ‘place’, ‘latitude’, ‘longitude’
+or a list of such station dictionaries, if requested by <cite>full_list</cite> argument</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;de:09162:70&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Universität&quot;</span><span class="p">,</span> <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="s2">&quot;München&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="mf">48.15007</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="mf">11.581</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.nearby_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nearby_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.nearby_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.nearby_async" title="Link to this definition"></a></dt>
+<dd><p>Find the nearest station by coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>latitude</strong> – coordinate in decimal degrees</p></li>
+<li><p><strong>longitude</strong> – coordinate in decimal degrees</p></li>
+<li><p><strong>full_list</strong> – return full list of stations instead of a single location</p></li>
+<li><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the fist matching station as dictionary with keys ‘id’, ‘name’, ‘place’, ‘latitude’, ‘longitude’
+or a list of such station dictionaries, if requested by <cite>full_list</cite> argument</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;de:09162:70&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Universität&quot;</span><span class="p">,</span> <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="s2">&quot;München&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="mf">48.15007</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="mf">11.581</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.station">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">station</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.station"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.station" title="Link to this definition"></a></dt>
+<dd><p>Find a station by station name and place or global station id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> – name, place (‘Universität, München’) or global station id (e.g. ‘de:09162:70’)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the fist matching station as dictionary with keys ‘id’, ‘name’, ‘place’, ‘latitude’, ‘longitude’</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;de:09162:6&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Hauptbahnhof&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="s2">&quot;München&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="mf">48.14003</span><span class="p">,</span>
+    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="mf">11.56107</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.station_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">station_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.station_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.station_async" title="Link to this definition"></a></dt>
+<dd><p>Find a station by station name and place or global station id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> – name, place (‘Universität, München’) or global station id (e.g. ‘de:09162:70’)</p></li>
+<li><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the first matching station as dictionary with keys ‘id’, ‘name’, ‘place’, ‘latitude’, ‘longitude’</p>
+</dd>
+</dl>
+<p>Example result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;de:09162:6&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Hauptbahnhof&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;place&quot;</span><span class="p">:</span> <span class="s2">&quot;München&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="mf">48.14003</span><span class="p">,</span>
+    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="mf">11.56107</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.station_ids_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">station_ids_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.station_ids_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.station_ids_async" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a list of all valid station ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>station ids as a list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.stations">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.stations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.stations" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a list of all stations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a list of stations as dictionary</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.stations_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stations_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClientSession</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.stations_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.stations_async" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a list of all stations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> – optional client sesion. If None is given, a temporary session is created</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#mvg.MvgApiError" title="mvg.MvgApiError"><strong>MvgApiError</strong></a> – raised on communication failure or unexpected result</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>a list of stations as dictionary</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.MvgApi.valid_station_id">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">valid_station_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">station_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_existance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApi.valid_station_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApi.valid_station_id" title="Link to this definition"></a></dt>
+<dd><p>Check if the station id is a global station ID according to VDV Recommendation 432.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>station_id</strong> – a global station id (e.g. ‘de:09162:70’)</p></li>
+<li><p><strong>validate_existance</strong> – validate the existence in a list from the API</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if valid, False if Invalid</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="mvg.MvgApiError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mvg.</span></span><span class="sig-name descname"><span class="pre">MvgApiError</span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#MvgApiError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.MvgApiError" title="Link to this definition"></a></dt>
+<dd><p>Failed communication with MVG API.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mvg.TransportType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mvg.</span></span><span class="sig-name descname"><span class="pre">TransportType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mvg/mvgapi.html#TransportType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.TransportType" title="Link to this definition"></a></dt>
+<dd><p>MVG products defined by the API with name and icon.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.BAHN">
+<span class="sig-name descname"><span class="pre">BAHN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Bahn',</span> <span class="pre">'mdi:train')</span></em><a class="headerlink" href="#mvg.TransportType.BAHN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.BUS">
+<span class="sig-name descname"><span class="pre">BUS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Bus',</span> <span class="pre">'mdi:bus')</span></em><a class="headerlink" href="#mvg.TransportType.BUS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.REGIONAL_BUS">
+<span class="sig-name descname"><span class="pre">REGIONAL_BUS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Regionalbus',</span> <span class="pre">'mdi:bus')</span></em><a class="headerlink" href="#mvg.TransportType.REGIONAL_BUS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.SBAHN">
+<span class="sig-name descname"><span class="pre">SBAHN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('S-Bahn',</span> <span class="pre">'mdi:subway-variant')</span></em><a class="headerlink" href="#mvg.TransportType.SBAHN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.SCHIFF">
+<span class="sig-name descname"><span class="pre">SCHIFF</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Schiff',</span> <span class="pre">'mdi:ferry')</span></em><a class="headerlink" href="#mvg.TransportType.SCHIFF" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.SEV">
+<span class="sig-name descname"><span class="pre">SEV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('SEV',</span> <span class="pre">'mdi:taxi')</span></em><a class="headerlink" href="#mvg.TransportType.SEV" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.TRAM">
+<span class="sig-name descname"><span class="pre">TRAM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('Tram',</span> <span class="pre">'mdi:tram')</span></em><a class="headerlink" href="#mvg.TransportType.TRAM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mvg.TransportType.UBAHN">
+<span class="sig-name descname"><span class="pre">UBAHN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('U-Bahn',</span> <span class="pre">'mdi:subway')</span></em><a class="headerlink" href="#mvg.TransportType.UBAHN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mvg.TransportType.all">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#mvg.TransportType" title="mvg.mvgapi.TransportType"><span class="pre">TransportType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/mvg/mvgapi.html#TransportType.all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mvg.TransportType.all" title="Link to this definition"></a></dt>
+<dd><p>Return a list of all products.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Martin Dziura.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
