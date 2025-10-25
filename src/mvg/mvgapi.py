@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import re
 import threading
+from dataclasses import dataclass
+from datetime import datetime, tzinfo
 from enum import Enum
 from http import HTTPStatus
 from typing import Any, Coroutine, TypeVar
@@ -47,11 +49,211 @@ class TransportType(Enum):
     REGIONAL_BUS = ("Regionalbus", "mdi:bus")
     SEV = ("SEV", "mdi:taxi")
     SCHIFF = ("Schiff", "mdi:ferry")
+    UNKOWN = ("Unkown", "mdi:help")
 
     @classmethod
     def all(cls) -> list[TransportType]:
         """Return a list of all products."""
-        return [getattr(TransportType, c.name) for c in cls if c.name != "SEV"]
+        return [getattr(TransportType, c.name) for c in cls if c.name not in {"SEV", "UNKOWN"}]
+
+
+def _get_minutes_until_departure(departure_time: int, tz: tzinfo | None = None) -> int:
+    """Calculate the time difference in minutes between the current time and a given departure time.
+
+    :param departure_time: unix timestamp of the departure time, in seconds
+    :param tz: optional timezone information
+
+    :return: the time difference in whole minutes
+
+    """
+    current_time = datetime.now(tz)
+    departure_datetime = datetime.fromtimestamp(departure_time, tz)
+    time_difference = (departure_datetime - current_time).total_seconds()
+    return int(time_difference / 60.0)
+
+
+@dataclass(frozen=True)
+class _MvgBaseInfo:
+    """Base class for data objects returned by MvgApi.
+
+    Enables dictionary like key access for backwards compatability.
+    """
+
+    def __getitem__(self, key: str) -> Any:  # noqa: ANN401
+        if key not in self.__dict__:
+            msg = f"Missing key {key} in {self}"
+            raise KeyError(msg)
+        return self.__dict__[key]
+
+
+@dataclass(frozen=True)
+class MvgDepartureInfo(_MvgBaseInfo):
+    """Departure information for a specific station."""
+
+    time: int
+    """actual departure time in Unix timestamp (seconds), planned departure time if realtime is `False`"""
+
+    planned: int
+    """planned departure time in Unix timestamp (seconds)"""
+
+    delay: int | None
+    """delay in minutes, None if not available, i.e., realtime is `False`"""
+
+    line: str
+    """line label (e.g. 'U3', 'S1')"""
+
+    platform: int | None
+    """platform number, None if not available"""
+
+    realtime: bool
+    """whether realtime data is available"""
+
+    destination: str
+    """human readable destination station name"""
+
+    type: str
+    """transport type identifier"""
+
+    icon: str
+    """icon identifier for the transport type"""
+
+    cancelled: bool
+    """whether the departure is cancelled"""
+
+    messages: list[str]
+    """list of messages related to this departure, e.g., information on why the departure is delayed"""
+
+    @classmethod
+    def from_dict(cls, raw_departure_info: dict[str, Any]) -> MvgDepartureInfo:
+        """Create `MvgDepartureInfo` from raw API response.
+
+        :param raw_departure_info: dictionary containing departure information from API
+        :raises ValueError: raised on unknown transport type
+        :return: `MvgDepartureInfo` instance
+        """
+        raw_transport_type = raw_departure_info["transportType"]
+        try:
+            transport_type = TransportType[raw_transport_type]
+        except KeyError as exc:
+            msg = f"Unkown transport type '{raw_transport_type}' for departure '{raw_departure_info}'"
+            raise ValueError(msg) from exc
+
+        return cls(
+            time=int(raw_departure_info["realtimeDepartureTime"] / 1000),
+            planned=int(raw_departure_info["plannedDepartureTime"] / 1000),
+            delay=raw_departure_info.get("delayInMinutes"),
+            platform=raw_departure_info.get("platform"),
+            realtime=raw_departure_info["realtime"],
+            line=raw_departure_info["label"],
+            destination=raw_departure_info["destination"],
+            type=transport_type.value[0],
+            icon=transport_type.value[1],
+            cancelled=raw_departure_info["cancelled"],
+            messages=raw_departure_info["messages"],
+        )
+
+    def minutes_until_planned_departure(self, tz: tzinfo | None = None) -> int:
+        """Calculate minutes until planned departure time.
+
+        :param tz: timezone to use for calculation, None for system default
+        :return: minutes until planned departure
+        """
+        return _get_minutes_until_departure(self.planned, tz)
+
+    def minutes_until_real_departure(self, tz: tzinfo | None = None) -> int:
+        """Calculate minutes until real departure time.
+
+        :param tz: timezone to use for calculation, None for system default
+        :return: minutes until real departure
+        """
+        return _get_minutes_until_departure(self.time, tz)
+
+
+@dataclass(frozen=True)
+class MvgLineInfo(_MvgBaseInfo):
+    """Information about a line that services a specific station."""
+
+    label: str
+    """line label (e.g. 'U3', 'S1')"""
+
+    type: str
+    """transport type identifier, e.g., U-Bahn"""
+
+    icon: str
+    """icon identifier for the transport type"""
+
+    sev: bool
+    """whether this is a SEV line, i.e., service to replace train service during disruptions"""
+
+    diva_id: str
+
+    @classmethod
+    def from_dict(cls, raw_line_info: dict[str, Any]) -> MvgLineInfo:
+        """Create MvgLineInfo from raw API response.
+
+        :param raw_line_info: dictionary containing line information from API
+        :raises ValueError: raised on unknown transport type
+        :return: MvgLineInfo instance
+        """
+        raw_transport_type = raw_line_info["transportType"]
+        raw_line_name = raw_line_info["label"]
+        try:
+            transport_type = TransportType[raw_transport_type]
+        except KeyError as exc:
+            msg = f"Unkown transport type '{raw_transport_type}' for line '{raw_line_name}'"
+            raise ValueError(msg) from exc
+
+        return MvgLineInfo(
+            label=raw_line_name,
+            type=transport_type.value[0],
+            icon=transport_type.value[1],
+            sev=raw_line_info["sev"],
+            diva_id=raw_line_info["divaId"],
+        )
+
+
+@dataclass(frozen=True)
+class MvgStationInfo(_MvgBaseInfo):
+    """Information about a station."""
+
+    id: str
+    """global station identifier (e.g. 'de:09162:70')"""
+
+    name: str
+    """human readable station name (e.g. 'Universität')"""
+
+    place: str
+    """human readable place name (e.g. 'München')"""
+
+    latitude: float
+    """geographic latitude (e.g. '48.149515')"""
+
+    longitude: float
+    """geographic longitude (e.g. '11.58082')"""
+
+    @classmethod
+    def from_dict(cls, raw_station_info: dict[str, Any]) -> MvgStationInfo:
+        """Create MvgStationInfo from raw API response.
+
+        :param raw_station_info: dictionary containing station information from API
+        :raises ValueError: raised when station ID is missing from data
+        :return: MvgStationInfo instance
+        """
+        if "id" in raw_station_info:
+            station_id = raw_station_info["id"]
+        elif "globalId" in raw_station_info:
+            station_id = raw_station_info["globalId"]
+        else:
+            msg = "Invalid station info data: missing key for station ID!"
+            raise ValueError(msg)
+
+        return cls(
+            id=station_id,
+            name=raw_station_info["name"],
+            place=raw_station_info["place"],
+            latitude=raw_station_info["latitude"],
+            longitude=raw_station_info["longitude"],
+        )
 
 
 class MvgApiError(Exception):
@@ -78,7 +280,7 @@ class MvgApi:
 
         station_details = self.station(station)
         if station_details:
-            self.station_id = station_details["id"]
+            self.station_id = station_details.id
 
     @staticmethod
     def valid_station_id(station_id: str, validate_existance: bool = False) -> bool:
@@ -211,7 +413,7 @@ class MvgApi:
     async def lines_async(
         station_id: str | None = None,
         session: aiohttp.ClientSession | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> set[MvgLineInfo]:
         """Retrieve a list of all lines or the lines that service a specific station.
 
         :param station_id: if a global station id ('de:09162:70') is given, the lines for this station are retrieved
@@ -222,15 +424,10 @@ class MvgApi:
 
         Example result::
 
-            [
-                {
-                    "label": "U1",
-                    "transportType": "UBAHN",
-                    "sev": False,
-                    "divaId": "010U1",
-                },
+            {
+                MvgLineInfo(label="S5", type="S-Bahn", icon="mdi:subway-variant", sev=False, diva_id="92M05"),
                 ...,
-            ]
+            }
         """
         endpoint: Endpoint | tuple[str, list[str]] = Endpoint.FIB_LINES
         if station_id is not None:
@@ -239,16 +436,22 @@ class MvgApi:
                 raise ValueError(msg)
             endpoint = (f"{Endpoint.FIB_LINES.value[0]}/{station_id}", [])
 
-        lines = await MvgApi.__api(Base.FIB, endpoint, session=session)
+        raw_lines = await MvgApi.__api(Base.FIB, endpoint, session=session)
 
-        if not isinstance(lines, list):
-            msg = f"Bad API call: Expected a list, but got {type(lines)}."
+        if not isinstance(raw_lines, list):
+            msg = f"Bad API call: Expected a list, but got {type(raw_lines)}."
             raise MvgApiError(msg)
 
-        return lines
+        try:
+            # The lines list returned by MVG sometimes contains duplicated lines.
+            # Therefore, lines are returned as a set to enable automatic de-duplication.
+            return {MvgLineInfo.from_dict(raw_line) for raw_line in raw_lines}
+        except ValueError as exc:
+            msg = f"Failed to retrieve lines for station {station_id}: {exc}"
+            raise MvgApiError(msg) from exc
 
     @staticmethod
-    def lines(station_id: str | None = None) -> list[dict[str, Any]]:
+    def lines(station_id: str | None = None) -> set[MvgLineInfo]:
         """Retrieve a list of all lines or the lines that service a specific station.
 
         :param station_id: if a global station id ('de:09162:70') is given, the lines for this station are retrieved
@@ -258,15 +461,10 @@ class MvgApi:
 
         Example result::
 
-            [
-                {
-                    "label": "U1",
-                    "transportType": "UBAHN",
-                    "sev": False,
-                    "divaId": "010U1",
-                },
+            {
+                MvgLineInfo(label="S5", type="S-Bahn", icon="mdi:subway-variant", sev=False, diva_id="92M05"),
                 ...,
-            ]
+            }
         """
         return MvgApi._run(MvgApi.lines_async(station_id))
 
@@ -274,7 +472,7 @@ class MvgApi:
     async def station_async(
         query: str,
         session: aiohttp.ClientSession | None = None,
-    ) -> dict[str, str] | None:
+    ) -> MvgStationInfo | None:
         """Find a station by station name and place or global station id.
 
         :param query: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
@@ -284,13 +482,13 @@ class MvgApi:
 
         Example result::
 
-            {
-                "id": "de:09162:6",
-                "name": "Hauptbahnhof",
-                "place": "München",
-                "latitude": 48.14003,
-                "longitude": 11.56107,
-            }
+            MvgStationInfo(
+                id="de:09162:6",
+                name="Hauptbahnhof (S, U, Bus, Tram)",
+                place="München",
+                latitude=48.140027,
+                longitude=11.561066,
+            )
         """
         query = query.strip()
         try:
@@ -303,13 +501,11 @@ class MvgApi:
                     msg = f"Bad API call: Expected a dict, but got {type(result)}."
                     raise MvgApiError(msg)
 
-                return {
-                    "id": result["id"],
-                    "name": result["name"],
-                    "place": result["place"],
-                    "latitude": result["latitude"],
-                    "longitude": result["longitude"],
-                }
+                try:
+                    return MvgStationInfo.from_dict(result)
+                except ValueError as exc:
+                    msg = f"Failed to get station metadata for station {query}: {exc}"
+                    raise MvgApiError(msg) from exc
 
             # use open search if query is not a station id
             args = dict.fromkeys(Endpoint.FIB_LOCATION.value[1])
@@ -321,13 +517,11 @@ class MvgApi:
 
             # return first location if lis is not empty
             if len(result) > 0:
-                return {
-                    "id": result[0]["globalId"],
-                    "name": result[0]["name"],
-                    "place": result[0]["place"],
-                    "latitude": result[0]["latitude"],
-                    "longitude": result[0]["longitude"],
-                }
+                try:
+                    return MvgStationInfo.from_dict(result[0])
+                except ValueError as exc:
+                    msg = f"Failed to get station metadata for station {query}: {exc}"
+                    raise MvgApiError(msg) from exc
 
         except (AssertionError, KeyError) as exc:
             msg = "Bad API call: Could not parse station data."
@@ -337,7 +531,7 @@ class MvgApi:
             return None
 
     @staticmethod
-    def station(query: str) -> dict[str, str] | None:
+    def station(query: str) -> MvgStationInfo | None:
         """Find a station by station name and place or global station id.
 
         :param query: name, place ('Universität, München') or global station id (e.g. 'de:09162:70')
@@ -346,13 +540,13 @@ class MvgApi:
 
         Example result::
 
-            {
-                "id": "de:09162:6",
-                "name": "Hauptbahnhof",
-                "place": "München",
-                "latitude": 48.14003,
-                "longitude": 11.56107,
-            }
+            MvgStationInfo(
+                id="de:09162:6",
+                name="Hauptbahnhof (S, U, Bus, Tram)",
+                place="München",
+                latitude=48.140027,
+                longitude=11.561066,
+            )
         """
         return MvgApi._run(MvgApi.station_async(query))
 
@@ -362,7 +556,7 @@ class MvgApi:
         longitude: float,
         full_list: bool = True,
         session: aiohttp.ClientSession | None = None,
-    ) -> dict[str, str] | list[dict[str, str]] | None:
+    ) -> MvgStationInfo | list[MvgStationInfo] | None:
         """Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
@@ -375,7 +569,9 @@ class MvgApi:
 
         Example result::
 
-            {"id": "de:09162:70", "name": "Universität", "place": "München", "latitude": 48.15007, "longitude": 11.581}
+            MvgStationInfo(
+                id="de:09162:70", name="Universität", place="München", latitude=48.149515, longitude=11.58082
+            )
         """
         try:
             args = dict.fromkeys(Endpoint.FIB_NEARBY.value[1])
@@ -386,16 +582,7 @@ class MvgApi:
                 raise MvgApiError(msg)
 
             if len(result) > 0:
-                locations = [
-                    {
-                        "id": location["globalId"],
-                        "name": location["name"],
-                        "place": location["place"],
-                        "latitude": location["latitude"],
-                        "longitude": location["longitude"],
-                    }
-                    for location in result
-                ]
+                locations = [MvgStationInfo.from_dict(location) for location in result]
                 # return full list or only nearest location
                 return locations if full_list else locations[0]
 
@@ -411,7 +598,7 @@ class MvgApi:
         latitude: float,
         longitude: float,
         full_list: bool = False,
-    ) -> dict[str, str] | list[dict[str, str]] | None:
+    ) -> MvgStationInfo | list[MvgStationInfo] | None:
         """Find the nearest station by coordinates.
 
         :param latitude: coordinate in decimal degrees
@@ -423,7 +610,9 @@ class MvgApi:
 
         Example result::
 
-            {"id": "de:09162:70", "name": "Universität", "place": "München", "latitude": 48.15007, "longitude": 11.581}
+            MvgStationInfo(
+                id="de:09162:70", name="Universität", place="München", latitude=48.149515, longitude=11.58082
+            )
         """
         return MvgApi._run(MvgApi.nearby_async(latitude, longitude, full_list))
 
@@ -434,7 +623,7 @@ class MvgApi:
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
         session: aiohttp.ClientSession | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[MvgDepartureInfo]:
         """Retrieve the next departures for a station by station id.
 
         :param station_id: the global station id ('de:09162:70')
@@ -449,19 +638,19 @@ class MvgApi:
         Example result::
 
             [
-                {
-                    "time": 1668524580,
-                    "planned": 1668524460,
-                    "delay": 0,
-                    "platform": 1,
-                    "realtime": True,
-                    "line": "U3",
-                    "destination": "Fürstenried West",
-                    "type": "U-Bahn",
-                    "icon": "mdi:subway",
-                    "cancelled": False,
-                    "messages": [],
-                },
+                MvgDepartureInfo(
+                    time=1759587672,
+                    planned=1759587120,
+                    delay=9,
+                    line="U4",
+                    platform=2,
+                    realtime=True,
+                    destination="Arabellapark",
+                    type="U-Bahn",
+                    icon="mdi:subway",
+                    cancelled=False,
+                    messages=[],
+                ),
                 ...,
             ]
         """
@@ -481,24 +670,9 @@ class MvgApi:
                 msg = f"Bad API call: Expected a list, but got {type(result)}."
                 raise MvgApiError(msg)
 
-            departures = [
-                {
-                    "time": int(departure["realtimeDepartureTime"] / 1000),
-                    "planned": int(departure["plannedDepartureTime"] / 1000),
-                    "delay": departure.get("delayInMinutes"),
-                    "platform": departure.get("platform"),
-                    "realtime": departure["realtime"],
-                    "line": departure["label"],
-                    "destination": departure["destination"],
-                    "type": TransportType[departure["transportType"]].value[0],
-                    "icon": TransportType[departure["transportType"]].value[1],
-                    "cancelled": departure["cancelled"],
-                    "messages": departure["messages"],
-                }
-                for departure in result
-            ]
+            departures = [MvgDepartureInfo.from_dict(raw_departure) for raw_departure in result]
 
-        except (AssertionError, KeyError) as exc:
+        except (AssertionError, KeyError, ValueError) as exc:
             msg = "Bad MVG API call: Invalid departure data."
             raise MvgApiError(msg) from exc
         else:
@@ -509,7 +683,7 @@ class MvgApi:
         limit: int = MVGAPI_DEFAULT_LIMIT,
         offset: int = 0,
         transport_types: list[TransportType] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[MvgDepartureInfo]:
         """Retrieve the next departures.
 
         :param limit: limit of departures, defaults to 10
@@ -521,19 +695,19 @@ class MvgApi:
         Example result::
 
             [
-                {
-                    "time": 1668524580,
-                    "planned": 1668524460,
-                    "delay": 0,
-                    "platform": 1,
-                    "realtime": True,
-                    "line": "U3",
-                    "destination": "Fürstenried West",
-                    "type": "U-Bahn",
-                    "icon": "mdi:subway",
-                    "cancelled": False,
-                    "messages": [],
-                },
+                MvgDepartureInfo(
+                    time=1759587672,
+                    planned=1759587120,
+                    delay=9,
+                    line="U4",
+                    platform=2,
+                    realtime=True,
+                    destination="Arabellapark",
+                    type="U-Bahn",
+                    icon="mdi:subway",
+                    cancelled=False,
+                    messages=[],
+                ),
                 ...,
             ]
 

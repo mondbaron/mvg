@@ -45,7 +45,7 @@ from mvg import MvgApi
 
 station = MvgApi.station('Universität, München')
 if station:
-    mvgapi = MvgApi(station['id'])
+    mvgapi = MvgApi(station.id)
     departures = mvgapi.departures()
     print(station, departures)
 ```
@@ -69,7 +69,7 @@ from mvg import MvgApi, TransportType
 
 station = MvgApi.station('Universität, München')
 if station:
-    mvgapi = MvgApi(station['id'])
+    mvgapi = MvgApi(station.id)
     departures = mvgapi.departures(
         limit=3,
         offset=5,
@@ -79,31 +79,47 @@ if station:
 
 ### Example results
 
-`station()` or `nearby()` results a `dict`:
+`station()` or `nearby()` results a `MvgStationInfo`:
 ```
-{ 
-'id': 'de:09162:70', 
-'name': 'Universität', 
-'place': 'München'
-'latitude': 48.15007, 
-'longitude': 11.581
+MvgStationInfo(
+    id='de:09162:70',
+    name='Universität',
+    place='München',
+    latitude=48.149515,
+    longitude=11.58082
+)
+```
+`departures()` results a `list` of `MvgDepartureInfo`:
+```
+[
+    MvgDepartureInfo(
+        time=1759587672,
+        planned=1759587120,
+        delay=9,
+        line="U4",
+        platform=2,
+        realtime=True,
+        destination="Arabellapark",
+        type="U-Bahn",
+        icon="mdi:subway",
+        cancelled=False,
+        messages=[],
+    ),
+    ...,
+]
+```
+`lines()` returns a `set` of `MvgLineInfo`:
+```
+{
+    MvgLineInfo(
+        label="S5",
+        type="S-Bahn",
+        icon="mdi:subway-variant",
+        sev=False,
+        diva_id="92M05"
+    ),
+    ...,
 }
-```
-`departures()` results a `list` of `dict`:
-```
-[{
-'time': 1668524580,
-'planned': 1668524460,
-'delay': 0,
-'platform': 1,
-'realtime': True,
-'line': 'U3',
-'destination': 'Fürstenried West',
-'type': 'U-Bahn',
-'icon': 'mdi:subway',
-'cancelled': False,
-'messages': []
-}, ... ]
 ```
 
 ## Advanced Usage: Asynchronous Methods
@@ -126,7 +142,7 @@ async def demo() -> None:
     async with aiohttp.ClientSession() as session:
         station = await MvgApi.station_async('Universität, München', session=session)
         if station:
-            departures = await MvgApi.departures_async(station['id'], session=session)
+            departures = await MvgApi.departures_async(station.id, session=session)
             print(station, departures)
 
 asyncio.run(demo())
