@@ -144,3 +144,4 @@ work from notebooks and similar environments.
 ## Notable Contributions
 
 - Thanks to [jrester](https://github.com/jrester) for adding support of reusable aiohttp HTTP sessions.
+- Thanks to [jrester](https://github.com/jrester) for adding additional information to departures.
