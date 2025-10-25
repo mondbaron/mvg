@@ -94,6 +94,9 @@ if station:
 [{
 'time': 1668524580,
 'planned': 1668524460,
+'delay': 0,
+'platform': 1,
+'realtime': True,
 'line': 'U3',
 'destination': 'Fürstenried West',
 'type': 'U-Bahn',
@@ -141,3 +144,4 @@ work from notebooks and similar environments.
 ## Notable Contributions
 
 - Thanks to [jrester](https://github.com/jrester) for adding support of reusable aiohttp HTTP sessions.
+- Thanks to [jrester](https://github.com/jrester) for adding additional information to departures.
