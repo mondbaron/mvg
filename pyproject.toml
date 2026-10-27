@@ -16,8 +16,8 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 
-requires-python = ">=3.8"
-dependencies    = [ "aiohttp~=3.8", "furl~=2.1" ]
+requires-python = ">=3.10"
+dependencies    = [ "aiohttp~=3.9" ]
 
 [[project.authors]]
 name  = "Martin Dziura"
@@ -54,7 +54,7 @@ indent-width = 4
 line-length  = 120
 
 [tool.ruff.lint]
-ignore = [ "D203", "D213", "EXE001", "FBT" ]
+ignore = [ "CPY", "D203", "D213", "EXE001", "FBT" ]
 select = [ "ALL" ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -69,6 +69,7 @@ quote-style                = "double"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+markers                            = [ "live: calls the real MVG API (deselect with -m \"not live\")" ]
 
 [[tool.uv.index]]
 name        = "testpypi"

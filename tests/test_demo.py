@@ -5,6 +5,8 @@ import pytest
 
 from mvg import MvgApi, TransportType
 
+pytestmark = pytest.mark.live
+
 
 def test_basic() -> None:
     """Test: basic usage."""
