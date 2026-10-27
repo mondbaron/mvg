@@ -13,6 +13,7 @@ import aiohttp
 from furl import furl
 
 MVGAPI_DEFAULT_LIMIT = 10  # API defaults to 10, limits to 100
+MVGAPI_DEFAULT_TIMEOUT = 10  # seconds, for temporary sessions (aiohttp defaults to 5 minutes)
 
 # Generic result type for _run
 T = TypeVar("T")
@@ -53,6 +54,11 @@ class TransportType(Enum):
         """Return a list of all products."""
         return [getattr(TransportType, c.name) for c in cls if c.name != "SEV"]
 
+    @classmethod
+    def info(cls, name: str) -> tuple[str, str]:
+        """Return name and icon of a product, falling back to the raw name for products unknown to this package."""
+        return cls[name].value if name in cls.__members__ else (name, "mdi:help-circle")
+
 
 class MvgApiError(Exception):
     """Failed communication with MVG API."""
@@ -77,8 +83,10 @@ class MvgApi:
             raise ValueError(msg)
 
         station_details = self.station(station)
-        if station_details:
-            self.station_id = station_details["id"]
+        if not station_details:
+            msg = "Station not found."
+            raise ValueError(msg)
+        self.station_id = station_details["id"]
 
     @staticmethod
     def valid_station_id(station_id: str, validate_existance: bool = False) -> bool:
@@ -88,7 +96,7 @@ class MvgApi:
         :param validate_existance: validate the existence in a list from the API
         :return: True if valid, False if Invalid
         """
-        valid_format = bool(re.match("de:[0-9]{2,5}:[0-9]+", station_id))
+        valid_format = bool(re.fullmatch("de:[0-9]{2,5}:[0-9]+", station_id))
         if not valid_format:
             return False
 
@@ -127,7 +135,7 @@ class MvgApi:
                     raise MvgApiError(msg)
                 return await resp.json()
 
-        except aiohttp.ClientError as exc:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
             msg = f"Bad API call: Got {type(exc)!s} from {url.url}"
             raise MvgApiError(msg) from exc
 
@@ -154,7 +162,7 @@ class MvgApi:
         if session is not None:
             return await MvgApi.__get(url, session)
 
-        async with aiohttp.ClientSession() as tmp_session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=MVGAPI_DEFAULT_TIMEOUT)) as tmp_session:
             return await MvgApi.__get(url, tmp_session)
 
     @staticmethod
@@ -360,7 +368,7 @@ class MvgApi:
     async def nearby_async(
         latitude: float,
         longitude: float,
-        full_list: bool = True,
+        full_list: bool = False,
         session: aiohttp.ClientSession | None = None,
     ) -> dict[str, str] | list[dict[str, str]] | None:
         """Find the nearest station by coordinates.
@@ -465,7 +473,7 @@ class MvgApi:
                 ...,
             ]
         """
-        station_id.strip()
+        station_id = station_id.strip()
         if not MvgApi.valid_station_id(station_id):
             msg = "Invalid format of global station ID."
             raise ValueError(msg)
@@ -490,8 +498,8 @@ class MvgApi:
                     "realtime": departure["realtime"],
                     "line": departure["label"],
                     "destination": departure["destination"],
-                    "type": TransportType[departure["transportType"]].value[0],
-                    "icon": TransportType[departure["transportType"]].value[1],
+                    "type": TransportType.info(departure["transportType"])[0],
+                    "icon": TransportType.info(departure["transportType"])[1],
                     "cancelled": departure["cancelled"],
                     "messages": departure["messages"],
                 }
@@ -560,30 +568,33 @@ class MvgApi:
         running loop which raises RuntimeError.
         """
         try:
-            return asyncio.run(coro)
+            asyncio.get_running_loop()
         except RuntimeError:
-            # Running inside an existing loop in this thread; fall back to
-            # the background loop approach.
-            if not asyncio.iscoroutine(coro):
-                msg = "_run expects a coroutine object"
-                raise TypeError(msg) from None
+            # No running loop in this thread: the normal, fast path.
+            return asyncio.run(coro)
 
-            with MvgApi._bg_lock:
-                if MvgApi._bg_loop is None:
-                    loop = asyncio.new_event_loop()
+        # Running inside an existing loop in this thread; fall back to
+        # the background loop approach.
+        if not asyncio.iscoroutine(coro):
+            msg = "_run expects a coroutine object"
+            raise TypeError(msg)
 
-                    def _start_bg_loop() -> None:
-                        asyncio.set_event_loop(loop)
-                        loop.run_forever()
-
-                    thread = threading.Thread(target=_start_bg_loop, daemon=True)
-                    thread.start()
-                    MvgApi._bg_loop = loop
-                    MvgApi._bg_thread = thread
-
+        with MvgApi._bg_lock:
             if MvgApi._bg_loop is None:
-                msg = "Failed to create background event loop"
-                raise RuntimeError(msg) from None
+                loop = asyncio.new_event_loop()
 
-            future = asyncio.run_coroutine_threadsafe(coro, MvgApi._bg_loop)
-            return future.result()
+                def _start_bg_loop() -> None:
+                    asyncio.set_event_loop(loop)
+                    loop.run_forever()
+
+                thread = threading.Thread(target=_start_bg_loop, daemon=True)
+                thread.start()
+                MvgApi._bg_loop = loop
+                MvgApi._bg_thread = thread
+
+        if MvgApi._bg_loop is None:
+            msg = "Failed to create background event loop"
+            raise RuntimeError(msg)
+
+        future = asyncio.run_coroutine_threadsafe(coro, MvgApi._bg_loop)
+        return future.result()
